@@ -1,0 +1,29 @@
+# Conventions
+
+- Plugin unit:
+  - Directory: `src/plugins/<pluginId>/`.
+  - Required files: `index.jsx` default export and `manifest.json`.
+  - Manifest fields used by shell: `id`, `name`, `icon`, `description`, `version`, `defaultSize`, `minSize`.
+  - `defaultSize` and `minSize` are pixel sizes `{ w, h }`.
+- Plugin loading:
+  - Registry eagerly imports all `../plugins/*/index.jsx` and all `../plugins/*/manifest.json`.
+  - Registry pairs modules and manifests by directory path.
+  - Prefer matching folder name and `manifest.id` to avoid confusing registry/debug output.
+- Plugin component props from `PluginCard`:
+  - `instanceId`: stable unique ID for one placed instance.
+  - `storage`: per-instance namespace with `get(field, fallback)`, `set(field, value)`, `remove(field)`.
+  - `bus`: shared in-memory pub/sub with `on(event, handler)` returning unsubscribe and `emit(event, payload)`.
+  - `width`, `height`: current card size in pixels.
+- Persistence keys:
+  - Layout: `lifedash.layout` array of `{ instanceId, pluginId, x, y, w, h }`.
+  - Plugin data: `lifedash.plugin.<instanceId>` JSON object.
+  - Removing an instance calls `clearPluginStorage(instanceId)` before removing layout entry.
+- Event names should be namespaced as `<pluginId>:<event>` to avoid cross-plugin collisions.
+- Dashboard owns position/size. Plugins should only store their own domain state via `storage`.
+- Network plugins follow a dual path:
+  - Tauri runtime uses dynamic import from `@tauri-apps/plugin-http`.
+  - Browser dev uses Vite proxy paths like `/yahoo` or `/gtx`.
+- External URL opening should use `@tauri-apps/plugin-opener` in Tauri and browser fallback where appropriate.
+- YouTube plugin uses Tauri child webview, not iframe, because youtube.com blocks normal embedding for full site usage.
+- React StrictMode is enabled; plugin effects that allocate external resources must clean up idempotently.
+- Current code style: plain JS/JSX modules, functional React components, direct CSS class names in `src/App.css` plus plugin-specific CSS where needed.

@@ -84,6 +84,13 @@ src/
 | `markets` | 시장 지표 | 코스피·나스닥·VIX·유가 등 32개 지표. 좌측 차트(1일/1주/1개월/1년) + 우측 목록 클릭 전환 |
 | `youtube` | 유튜브 | Tauri child webview로 진짜 youtube.com을 카드 위에 표시. 데스크탑 앱 전용 (브라우저 dev는 안내만) |
 | `translator` | 번역기 | 하이브리드 엔진: 기본은 무료 구글 번역(키 불필요), 설정(⚙)에 Claude API 키 입력 시 AI 번역 |
+| `dictionary` | 사전 | 영영(Free Dictionary API) + 영한(구글 dt=bd). 좌측 뜻풀이, 우측 검색 기록 클릭 재조회 |
+
+### dictionary 플러그인 데이터 소스
+- **영영**: `api.dictionaryapi.dev/api/v2/entries/en/{word}` — 키 불필요. 발음기호(IPA), 오디오, 품사별 정의/예문/유의어. 404 = 단어 없음.
+- **영한**: 번역기와 같은 구글 엔드포인트에 `dt=bd` 파라미터 추가 — `json[1]`에 품사별 대역어 목록이 옴(`tl=ko`라 품사명도 한국어). `json[0]`은 대표 번역.
+- 검색 기록은 인스턴스 storage에 `{word, mode}`로 최대 30개. 성공한 검색만 기록.
+- 브라우저 dev 프록시: `/dict`(dictionaryapi.dev), `/gtx`(구글 공용). Tauri capability에 두 도메인 등록됨.
 
 ### translator 플러그인 엔진 구조
 - 엔진 추상화는 `src/plugins/translator/engines.js`의 `translate({engine, ...})` 한 곳. 엔진 추가(DeepL 등) 시 여기만 수정.

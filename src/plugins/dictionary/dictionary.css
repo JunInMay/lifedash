@@ -1,0 +1,231 @@
+.dic-root {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ---- 좌측: 검색 + 뜻풀이 ---- */
+
+.dic-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 0 10px 12px;
+}
+
+.dic-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dic-modes {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dic-mode-btn {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #8b93a3;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dic-mode-btn:hover {
+  color: #e6e6e6;
+}
+
+.dic-mode-btn.active {
+  border-color: #3a3f4b;
+  background: #262a33;
+  color: #e6e6e6;
+}
+
+.dic-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.dic-status {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6270;
+  font-size: 13px;
+  text-align: center;
+}
+
+.dic-status.error {
+  color: #f87171;
+}
+
+.dic-word-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.dic-word {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.dic-phonetic {
+  color: #8b93a3;
+  font-size: 13px;
+}
+
+.dic-audio {
+  border: none;
+  background: transparent;
+  color: #8ab4f8;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.dic-translation {
+  font-size: 15px;
+  font-weight: 600;
+  color: #8ab4f8;
+  margin-bottom: 8px;
+}
+
+.dic-pos-block {
+  margin-bottom: 12px;
+}
+
+.dic-pos {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: #2c3140;
+  color: #8ab4f8;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.dic-def-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dic-def-list li {
+  margin-bottom: 4px;
+}
+
+.dic-example {
+  color: #8b93a3;
+  font-style: italic;
+}
+
+.dic-terms {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dic-synonyms {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8b93a3;
+}
+
+/* ---- 우측: 검색 기록 ---- */
+
+.dic-side {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #2b2f38;
+  margin-left: 12px;
+  padding: 6px;
+  min-height: 0;
+}
+
+.dic-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 4px;
+  font-size: 11px;
+  color: #5b6270;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dic-clear {
+  border: none;
+  background: transparent;
+  color: #5b6270;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dic-clear:hover {
+  color: #f87171;
+}
+
+.dic-side-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.dic-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #c8cdd8;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dic-item:hover {
+  background: #262a33;
+}
+
+.dic-item.active {
+  background: #2c3140;
+  color: #fff;
+}
+
+.dic-item-word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dic-item-mode {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #5b6270;
+}
+
+.dic-empty {
+  padding: 8px;
+  color: #5b6270;
+  font-size: 12px;
+}

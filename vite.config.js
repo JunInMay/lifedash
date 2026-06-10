@@ -39,12 +39,19 @@ export default defineConfig(async () => ({
         secure: false,
         rewrite: (path) => path.replace(/^\/yahoo/, ""),
       },
-      // 번역기 플러그인: 무료 구글 번역 엔드포인트
+      // 번역기·사전(영한) 플러그인: 무료 구글 번역 엔드포인트
       "/gtx": {
         target: "https://translate.googleapis.com",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/gtx/, ""),
+      },
+      // 사전(영영) 플러그인: Free Dictionary API
+      "/dict": {
+        target: "https://api.dictionaryapi.dev",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/dict/, ""),
       },
     },
   },

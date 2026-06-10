@@ -1,0 +1,9 @@
+{
+  "id": "dictionary",
+  "name": "사전",
+  "icon": "📖",
+  "description": "영영·영한 사전 — 검색 기록에서 클릭으로 재조회",
+  "version": "1.0.0",
+  "defaultSize": { "w": 560, "h": 400 },
+  "minSize": { "w": 400, "h": 280 }
+}
