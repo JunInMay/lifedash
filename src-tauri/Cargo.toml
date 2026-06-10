@@ -18,7 +18,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# "unstable": 한 윈도우 안에 child webview를 띄우기 위해 필요 (유튜브 플러그인)
+tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-http = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }

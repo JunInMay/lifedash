@@ -1,0 +1,9 @@
+{
+  "id": "youtube",
+  "name": "유튜브",
+  "icon": "📺",
+  "description": "진짜 유튜브를 카드 안에서 — 검색·재생·로그인 가능 (데스크탑 앱 전용)",
+  "version": "1.0.0",
+  "defaultSize": { "w": 480, "h": 360 },
+  "minSize": { "w": 320, "h": 240 }
+}

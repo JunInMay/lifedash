@@ -82,6 +82,16 @@ src/
 | `notes` | 메모 | storage 사용, 입력 즉시 저장 |
 | `links` | 바로가기 | `@tauri-apps/plugin-opener`로 기본 브라우저 열기, 브라우저 환경은 `window.open` fallback |
 | `markets` | 시장 지표 | 코스피·나스닥·VIX·유가 등 32개 지표. 좌측 차트(1일/1주/1개월/1년) + 우측 목록 클릭 전환 |
+| `youtube` | 유튜브 | Tauri child webview로 진짜 youtube.com을 카드 위에 표시. 데스크탑 앱 전용 (브라우저 dev는 안내만) |
+
+### youtube 플러그인 동작 방식 (child webview)
+- 유튜브는 iframe 차단(X-Frame-Options)이라 embed로는 페이지 탐색이 불가 → **Tauri child webview**로 해결.
+  (lifedash 프로토타입의 `WebviewWindow` 방식은 별도 OS 창이 떠서 실패했던 과제)
+- Rust: `tauri = { features = ["unstable"] }` 필요 (한 윈도우 안 멀티 웹뷰). capability에 `core:webview:allow-create-webview` 등 4개 권한 등록됨.
+- JS: `new Webview(getCurrentWindow(), label, { url, x, y, width, height })` 생성 후,
+  카드 본문 DOM의 `getBoundingClientRect()`를 rAF 루프로 추적해 `setPosition`/`setSize`로 따라붙임.
+- **제약**: 네이티브 웹뷰는 항상 HTML 위에 떠 있음. 다른 카드나 플러그인 드로어가 유튜브 카드와 겹치면 웹뷰에 가려진다. 유튜브 카드는 구석에 두는 걸 권장.
+- StrictMode 이중 마운트 대비, 웹뷰 라벨은 마운트마다 고유값 생성. 언마운트 시 `close()`로 정리.
 
 ### markets 플러그인 데이터 소스
 - **Yahoo Finance v8 chart API** (무료, 키 불필요): `query1.finance.yahoo.com/v8/finance/chart/{symbol}`
@@ -95,7 +105,8 @@ src/
 ## 미구현 / 향후 과제
 - [ ] 플러그인 마켓 (검증된 플러그인 등록/배포 시스템) — 현재는 로컬 플러그인만
 - [ ] 외부 플러그인 동적 로딩 (현재는 빌드 타임 번들)
-- [ ] YouTube 등 외부 콘텐츠 임베드 — Tauri child webview API 검토 필요 (WebviewWindow는 별도 OS 창이라 부적합, lifedash 프로토타입에서 확인됨)
+- [x] YouTube 임베드 — child webview로 구현 완료 (위 youtube 플러그인 참고)
+- [ ] youtube 웹뷰가 드로어/다른 카드를 가리는 z-order 문제 — 드로어 열릴 때 웹뷰 hide 등 검토
 - [ ] 윈도우 시작 시 자동 실행 (autostart 플러그인)
 - [ ] 멀티 보드(페이지) 지원
 

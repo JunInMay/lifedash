@@ -6,6 +6,10 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "core:webview:allow-create-webview",
+    "core:webview:allow-webview-close",
+    "core:webview:allow-set-webview-position",
+    "core:webview:allow-set-webview-size",
     {
       "identifier": "http:default",
       "allow": [
