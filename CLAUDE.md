@@ -83,6 +83,13 @@ src/
 | `links` | 바로가기 | `@tauri-apps/plugin-opener`로 기본 브라우저 열기, 브라우저 환경은 `window.open` fallback |
 | `markets` | 시장 지표 | 코스피·나스닥·VIX·유가 등 32개 지표. 좌측 차트(1일/1주/1개월/1년) + 우측 목록 클릭 전환 |
 | `youtube` | 유튜브 | Tauri child webview로 진짜 youtube.com을 카드 위에 표시. 데스크탑 앱 전용 (브라우저 dev는 안내만) |
+| `translator` | 번역기 | 하이브리드 엔진: 기본은 무료 구글 번역(키 불필요), 설정(⚙)에 Claude API 키 입력 시 AI 번역 |
+
+### translator 플러그인 엔진 구조
+- 엔진 추상화는 `src/plugins/translator/engines.js`의 `translate({engine, ...})` 한 곳. 엔진 추가(DeepL 등) 시 여기만 수정.
+- **google**: 비공식 무료 엔드포인트 `translate.googleapis.com/translate_a/single?client=gtx`. 키 불필요, 언어 자동 감지 지원. 비공식이라 차단 리스크 있음.
+- **claude**: Anthropic Messages API 직접 호출. 키는 플러그인 storage(localStorage)에만 저장. 모델 선택 가능(기본 `claude-haiku-4-5`, Sonnet/Opus 선택지). 브라우저 CORS는 `anthropic-dangerous-direct-browser-access: true` 헤더로 허용.
+- 네트워크 경로는 markets와 동일 패턴: Tauri는 plugin-http(capability에 도메인 등록), 브라우저 dev는 vite 프록시(`/gtx`).
 
 ### youtube 플러그인 동작 방식 (child webview)
 - 유튜브는 iframe 차단(X-Frame-Options)이라 embed로는 페이지 탐색이 불가 → **Tauri child webview**로 해결.

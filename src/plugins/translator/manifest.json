@@ -1,0 +1,9 @@
+{
+  "id": "translator",
+  "name": "번역기",
+  "icon": "🌐",
+  "description": "무료 구글 번역 기본, Claude API 키 입력 시 AI 번역",
+  "version": "1.0.0",
+  "defaultSize": { "w": 440, "h": 360 },
+  "minSize": { "w": 320, "h": 260 }
+}

@@ -14,7 +14,9 @@
       "identifier": "http:default",
       "allow": [
         { "url": "https://query1.finance.yahoo.com/*" },
-        { "url": "https://query2.finance.yahoo.com/*" }
+        { "url": "https://query2.finance.yahoo.com/*" },
+        { "url": "https://translate.googleapis.com/*" },
+        { "url": "https://api.anthropic.com/*" }
       ]
     }
   ]
