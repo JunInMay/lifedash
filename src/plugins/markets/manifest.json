@@ -1,0 +1,9 @@
+{
+  "id": "markets",
+  "name": "시장 지표",
+  "icon": "📈",
+  "description": "코스피·나스닥·VIX·유가 등 30여 개 지표 차트",
+  "version": "1.0.0",
+  "defaultSize": { "w": 620, "h": 380 },
+  "minSize": { "w": 440, "h": 280 }
+}

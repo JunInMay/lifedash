@@ -30,5 +30,15 @@ export default defineConfig(async () => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+    proxy: {
+      // 브라우저 dev에서 Yahoo Finance CORS 우회 (Tauri 앱은 plugin-http로 직접 호출)
+      "/yahoo": {
+        target: "https://query1.finance.yahoo.com",
+        changeOrigin: true,
+        // 사내망 SSL 인터셉션(자체 서명 인증서) 환경에서도 동작하도록 검증 생략
+        secure: false,
+        rewrite: (path) => path.replace(/^\/yahoo/, ""),
+      },
+    },
   },
 }));

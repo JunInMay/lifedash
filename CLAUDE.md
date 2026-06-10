@@ -81,6 +81,16 @@ src/
 | `todo` | 할 일 | storage 사용 |
 | `notes` | 메모 | storage 사용, 입력 즉시 저장 |
 | `links` | 바로가기 | `@tauri-apps/plugin-opener`로 기본 브라우저 열기, 브라우저 환경은 `window.open` fallback |
+| `markets` | 시장 지표 | 코스피·나스닥·VIX·유가 등 32개 지표. 좌측 차트(1일/1주/1개월/1년) + 우측 목록 클릭 전환 |
+
+### markets 플러그인 데이터 소스
+- **Yahoo Finance v8 chart API** (무료, 키 불필요): `query1.finance.yahoo.com/v8/finance/chart/{symbol}`
+- CORS 우회 2중화 (`src/plugins/markets/api.js`):
+  - Tauri 앱: `tauri-plugin-http` (Rust 측 fetch) — capability에 yahoo URL 허용 등록됨
+  - 브라우저 dev: vite 프록시 `/yahoo` (사내망 SSL 인터셉션 때문에 `secure: false` 필수)
+- 지표 추가/제거는 `src/plugins/markets/symbols.js`만 수정
+- 갱신 주기: 선택 지표 60초, 목록 등락률은 400ms 간격 순차 순회 후 3분 휴식 (API 부하 분산)
+- 등락 색상은 국내 관례 (상승 빨강 / 하락 파랑)
 
 ## 미구현 / 향후 과제
 - [ ] 플러그인 마켓 (검증된 플러그인 등록/배포 시스템) — 현재는 로컬 플러그인만
