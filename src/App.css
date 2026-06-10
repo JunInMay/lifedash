@@ -1,0 +1,236 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  color: #e6e6e6;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ---- 레이아웃 ---- */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background: #15171c;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 16px;
+  background: #1d2026;
+  border-bottom: 1px solid #2b2f38;
+}
+
+.topbar-logo {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #8ab4f8;
+}
+
+.topbar-add {
+  padding: 4px 14px;
+  border: 1px solid #3a3f4b;
+  border-radius: 6px;
+  background: #262a33;
+  color: #e6e6e6;
+  cursor: pointer;
+}
+
+.topbar-add:hover {
+  background: #303542;
+}
+
+.board {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background-image: radial-gradient(#23272f 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.board-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6270;
+  font-size: 15px;
+}
+
+/* ---- 플러그인 카드 ---- */
+
+.plugin-card-wrap {
+  position: absolute;
+}
+
+.plugin-card {
+  display: flex !important;
+  flex-direction: column;
+  border: 1px solid #343945;
+  border-radius: 10px;
+  background: #1d2026;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.plugin-handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2b2f38;
+  background: #23272f;
+  cursor: grab;
+  user-select: none;
+}
+
+.plugin-handle:active {
+  cursor: grabbing;
+}
+
+.plugin-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.plugin-close {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.plugin-close:hover {
+  color: #f87171;
+}
+
+.plugin-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* react-resizable 핸들 다크테마 보정 */
+.react-resizable-handle {
+  filter: invert(0.7);
+}
+
+/* ---- 플러그인 드로어 ---- */
+
+.drawer {
+  position: fixed;
+  top: 52px;
+  right: 12px;
+  width: 280px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #343945;
+  border-radius: 10px;
+  background: #1d2026;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2b2f38;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.drawer-list {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e6e6e6;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drawer-item:hover {
+  background: #262a33;
+}
+
+.drawer-item-icon {
+  font-size: 20px;
+}
+
+.drawer-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-item-text small {
+  color: #8b93a3;
+}
+
+/* ---- 플러그인 공통 위젯 스타일 ---- */
+
+.widget-pad {
+  padding: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-btn {
+  padding: 4px 12px;
+  border: 1px solid #3a3f4b;
+  border-radius: 6px;
+  background: #262a33;
+  color: #e6e6e6;
+  cursor: pointer;
+}
+
+.widget-btn:hover {
+  background: #303542;
+}
+
+.widget-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #3a3f4b;
+  border-radius: 6px;
+  background: #15171c;
+  color: #e6e6e6;
+  outline: none;
+}
+
+.widget-input:focus {
+  border-color: #8ab4f8;
+}

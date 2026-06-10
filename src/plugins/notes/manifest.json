@@ -1,0 +1,9 @@
+{
+  "id": "notes",
+  "name": "메모",
+  "icon": "📝",
+  "description": "빠른 메모장 — 입력 즉시 저장",
+  "version": "1.0.0",
+  "defaultSize": { "w": 320, "h": 260 },
+  "minSize": { "w": 220, "h": 160 }
+}

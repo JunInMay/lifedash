@@ -1,0 +1,9 @@
+{
+  "id": "clock",
+  "name": "시계",
+  "icon": "🕐",
+  "description": "현재 시각과 날짜",
+  "version": "1.0.0",
+  "defaultSize": { "w": 300, "h": 170 },
+  "minSize": { "w": 220, "h": 130 }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "links",
+  "name": "바로가기",
+  "icon": "🔗",
+  "description": "자주 가는 사이트를 기본 브라우저로 열기",
+  "version": "1.0.0",
+  "defaultSize": { "w": 300, "h": 280 },
+  "minSize": { "w": 240, "h": 180 }
+}

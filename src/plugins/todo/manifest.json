@@ -1,0 +1,9 @@
+{
+  "id": "todo",
+  "name": "할 일",
+  "icon": "✅",
+  "description": "체크리스트 — 데이터 자동 저장",
+  "version": "1.0.0",
+  "defaultSize": { "w": 300, "h": 320 },
+  "minSize": { "w": 240, "h": 200 }
+}

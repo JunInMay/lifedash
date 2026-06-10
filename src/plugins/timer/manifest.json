@@ -1,0 +1,9 @@
+{
+  "id": "timer",
+  "name": "타이머",
+  "icon": "⏱️",
+  "description": "밀리초 단위 스톱워치",
+  "version": "1.0.0",
+  "defaultSize": { "w": 280, "h": 180 },
+  "minSize": { "w": 220, "h": 150 }
+}
