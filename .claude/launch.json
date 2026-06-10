@@ -4,9 +4,8 @@
     {
       "name": "lifedash-fable",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "D:/VibeProjects/lifedash-fable",
-      "port": 1430
+      "runtimeArgs": ["run", "dev", "--", "--port", "1435"],
+      "port": 1435
     }
   ]
 }
