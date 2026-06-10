@@ -118,6 +118,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `youtube` | 유튜브 | child webview로 진짜 youtube.com을 카드 위에 표시 | - (데스크탑 전용) |
 | `translator` | 번역기 | 하이브리드: 무료 구글 기본, Claude API 키 입력 시 AI 번역 | 구글 gtx / Anthropic Messages API |
 | `dictionary` | 사전 | 영영/영한, 좌측 뜻풀이 + 우측 검색 기록 재조회 | dictionaryapi.dev / 구글 gtx `dt=bd` |
+| `teams` | 팀즈 | child webview로 진짜 teams.microsoft.com을 카드 위에 표시 (youtube와 동일 패턴) | - (데스크탑 전용) |
 
 ### 플러그인별 구현 메모
 
@@ -133,8 +134,11 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 
 **dictionary** — 영한은 구글 gtx에 `dt=bd` 추가 시 `json[1]`에 품사별 대역어가 옴(`tl=ko`라 품사명도 한국어로 옴). 검색 기록은 `{word, mode}` 최대 30개, 성공한 검색만 기록.
 
-## 작업 이력 (2026-06-10, Claude Fable 5)
+**teams** — youtube 플러그인을 그대로 복제해 URL만 `teams.microsoft.com`으로 교체. 추가 capability/proxy 불필요(웹뷰 생성은 도메인 제한 없음, CSP가 null). 매번 로그인해도 무방하다는 사용자 확인 하에 진행. youtube와 동일한 z-order/브라우저 dev 제약을 그대로 가짐.
 
+## 작업 이력
+
+### 2026-06-10, Claude Fable 5
 | 커밋 | 내용 |
 |------|------|
 | `eb61734` | 초기 구현: 코어(레지스트리/칠판/카드/드로어/버스/스토리지) + 기본 플러그인 5종 |
@@ -145,6 +149,11 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `f81d8fc` | dictionary 플러그인 (영영/영한) |
 
 검증된 것: 프론트 빌드, cargo check(권한/capability 빌드타임 검증 포함), 브라우저 프리뷰에서 각 플러그인 실데이터 동작(시장 지표 실시세, 번역 한↔영, 사전 양 모드, 기록 재조회).
+
+### 2026-06-10 (이어서)
+- **teams 플러그인 추가**: youtube와 동일한 child webview 패턴, `teams.microsoft.com` 임베드. 사용자가 데스크탑 앱에서 로그인까지 정상 동작 확인.
+- **PluginCard 리사이즈 핸들 NW/NE 추가**: SE만 있던 기본 핸들에 좌상/우상 추가 (`resizeHandles={["se","ne","nw"]}`). youtube/teams처럼 child webview가 카드 본문(`.plugin-body`) 전체를 덮어 SE 핸들이 가려지는 문제의 우회책 — 헤더 영역(웹뷰가 안 덮는 곳)에 핸들을 추가. NW/NE로 리사이즈하면 카드 좌상단 기준점이 이동하므로, `onResizeStart`에서 시작 위치/크기를 기록하고 핸들 방향(`n`/`w` 포함 여부)에 따라 위치(x, y)도 함께 보정. 사용자가 동작 확인 완료.
+- 알아둘 점: SW 핸들은 추가 안 함(아직 가려짐 문제 미해결 — 필요 시 webview hide 연동 검토, [알려진 이슈](#알려진-이슈--리스크) 참조)
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

@@ -1,0 +1,9 @@
+{
+  "id": "teams",
+  "name": "팀즈",
+  "icon": "👥",
+  "description": "Microsoft Teams 웹을 카드 안에서 — 채팅·캘린더·회의 (데스크탑 앱 전용)",
+  "version": "1.0.0",
+  "defaultSize": { "w": 480, "h": 480 },
+  "minSize": { "w": 360, "h": 320 }
+}

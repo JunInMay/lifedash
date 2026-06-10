@@ -9,6 +9,7 @@ import "react-resizable/css/styles.css";
 function PluginCard({ instance, onMove, onResize, onRemove }) {
   const nodeRef = useRef(null);
   const [pos, setPos] = useState({ x: instance.x, y: instance.y });
+  const resizeStart = useRef(null);
   const Plugin = getPlugin(instance.pluginId);
   const storage = useMemo(
     () => createPluginStorage(instance.instanceId),
@@ -36,9 +37,33 @@ function PluginCard({ instance, onMove, onResize, onRemove }) {
           width={instance.w}
           height={instance.h}
           minConstraints={[minSize.w, minSize.h]}
-          onResizeStop={(_e, { size }) =>
-            onResize(instance.instanceId, size.width, size.height)
-          }
+          resizeHandles={["se", "ne", "nw"]}
+          onResizeStart={(_e, { size, handle }) => {
+            resizeStart.current = { x: pos.x, y: pos.y, w: size.width, h: size.height, handle };
+          }}
+          onResize={(_e, { size, handle }) => {
+            const start = resizeStart.current;
+            if (!start) return;
+            let x = start.x;
+            let y = start.y;
+            if (handle.includes("w")) x = start.x - (size.width - start.w);
+            if (handle.includes("n")) y = start.y - (size.height - start.h);
+            setPos({ x, y });
+          }}
+          onResizeStop={(_e, { size, handle }) => {
+            const start = resizeStart.current;
+            let x = pos.x;
+            let y = pos.y;
+            if (start) {
+              x = start.x;
+              y = start.y;
+              if (handle.includes("w")) x = start.x - (size.width - start.w);
+              if (handle.includes("n")) y = start.y - (size.height - start.h);
+            }
+            resizeStart.current = null;
+            if (x !== instance.x || y !== instance.y) onMove(instance.instanceId, x, y);
+            onResize(instance.instanceId, size.width, size.height);
+          }}
           className="plugin-card"
         >
           <div className="plugin-handle">
