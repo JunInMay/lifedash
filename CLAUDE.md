@@ -90,6 +90,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 ### 저장소 키 구조 (localStorage)
 - `lifedash.layout` — 인스턴스 배열 `[{ instanceId, pluginId, x, y, w, h }]`
 - `lifedash.plugin.<instanceId>` — 플러그인 인스턴스별 데이터. 인스턴스 제거 시 함께 삭제됨
+- `lifedash.shared.<pluginId>` — 같은 플러그인의 모든 인스턴스가 공유, 인스턴스 생명주기와 무관하게 유지(`storage.js`의 `createSharedStorage(pluginId)`). 카드를 닫았다 다시 추가해도 남아있어야 하는 "라이브러리"성 데이터에 사용 (예: videoplayer의 동영상 목록)
 
 ### 외부 API 호출 공통 패턴 (CORS 이중화)
 모든 네트워크 플러그인이 같은 패턴을 쓴다 (`markets/api.js`, `translator/engines.js`, `dictionary/api.js`):
@@ -203,6 +204,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 
 ### 2026-06-11 (이어서, Sonnet)
 - **videoplayer 플러그인 추가**: 갑갑한 화면에서 자연 풍경 동영상으로 리프레시하자는 사용자 아이디어를 구현(상세는 위 구현 메모 참조). 신규 Tauri 인프라(fs/dialog 플러그인, asset 프로토콜, `protocol-asset` feature) 추가. 검증: `npm run build` ✅, `cargo check` ✅(신규 의존성 컴파일 포함, ~1m40s), 브라우저 프리뷰에서 "데스크탑 전용" 폴백 렌더 확인. 파일 다이얼로그/asset 재생 등 네이티브 경로는 `npm run tauri dev`에서 사용자 확인 필요.
+- **videoplayer 동영상 목록 유실 버그 수정**: 사용자가 "동영상 추가 → 카드 닫음 → 다시 추가 → 목록이 비어있음" 보고. 원인은 동영상 목록을 인스턴스별 storage(`lifedash.plugin.<instanceId>`)에 저장했는데, 카드 제거 시 `clearPluginStorage`가 이 키를 통째로 지우기 때문. `storage.js`에 `createSharedStorage(pluginId)` 추가(키 `lifedash.shared.<pluginId>`, 인스턴스 생명주기와 무관) — videoplayer는 이제 동영상 목록을 여기에 저장. 검증: `npm run build` ✅, 브라우저 콘솔에서 인스턴스 storage 삭제 후에도 공유 storage가 남는 것 확인.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**
