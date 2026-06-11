@@ -193,6 +193,11 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
   - 종목: 재무제표 필수 반영. 데이터 소스 조사 결과는 위 stocks 메모 참조 (Yahoo 한글 검색 거부, 회사망의 증권 사이트 차단, fundamentals-timeseries 우회)
   - 검증: KR/US 헤드라인 교차 배치, 삼성전자(005930.KS) 시세·차트·재무 12항목, QQQ ETF 검색, 즐겨찾기 저장
 
+### 2026-06-11 (이어서, Sonnet)
+- **TODO.md 작성**: 사용자가 제시한 12개(이후 14개) 향후 과제를 카드 UI/배치/앱 셸/계정 영역으로 정리. 마켓형 플러그인 전환 세부 과제도 별도 정리.
+- **사내망 SSL 인터셉션으로 인한 빌드 앱 markets 버그 수정**: `npm run tauri build`로 만든 실제 앱에서 시장 지표가 "Unexpected token '<'" 에러로 실패. 원인은 `tauri-plugin-http`(reqwest) 기본 `rustls-tls`가 webpki-roots만 신뢰해 회사 자체 서명 루트 인증서를 검증 못 하고, catch로 넘어간 `/yahoo` 프록시 fallback도 production엔 없어 index.html을 받아옴. `Cargo.toml`에서 `rustls-tls-native-roots`(Windows 인증서 저장소 신뢰)로 전환해 해결. 사용자가 재빌드 후 정상 동작 확인.
+- **헤더 더블클릭 최대화/복원 토글 추가**: `Dashboard.jsx`의 `handleMaximizeToggle` — 더블클릭한 카드를 다른 카드와 겹치지 않는 선에서 상하좌우 독립적으로 그리디 확장(각 방향은 현재 footprint와 겹치는 카드들의 가장 가까운 경계 또는 보드 끝까지). 인스턴스에 `_prev`(이전 x/y/w/h)를 저장해두고, 다시 더블클릭하면 복원. L자형 빈 공간까지 채우는 진짜 maximal-rectangle은 아니고 "현재 footprint 기준 독립 4방향 확장"이라는 단순화된 근사. `PluginCard`의 `.plugin-handle`에 `onDoubleClick` 연결.
+
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**
 2. **Rust 변경 시**: `$env:CARGO_HTTP_CHECK_REVOKE = "false"; cargo check` (src-tauri에서). capability JSON 오류도 여기서 잡힘

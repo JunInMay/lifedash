@@ -6,7 +6,7 @@ import { eventBus } from "./eventBus";
 import { createPluginStorage } from "./storage";
 import "react-resizable/css/styles.css";
 
-function PluginCard({ instance, onMove, onResize, onRemove }) {
+function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) {
   const nodeRef = useRef(null);
   const [pos, setPos] = useState({ x: instance.x, y: instance.y });
   const resizeStart = useRef(null);
@@ -72,7 +72,7 @@ function PluginCard({ instance, onMove, onResize, onRemove }) {
           }}
           className="plugin-card"
         >
-          <div className="plugin-handle">
+          <div className="plugin-handle" onDoubleClick={() => onMaximizeToggle(instance.instanceId)}>
             <span className="plugin-title">
               {Plugin.manifest.icon} {Plugin.manifest.name}
             </span>
