@@ -139,7 +139,10 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 
 **aichat** — provider 추상화는 `api.js`의 `sendChat({provider, ...})`. Claude는 `anthropic-dangerous-direct-browser-access` 헤더로 어디서든 직접 호출, OpenAI는 브라우저 CORS 불가라 dev는 `/openai` 프록시·Tauri는 plugin-http. 키/모델은 provider별로 storage에 분리 저장(`keys`, `models` 맵). 모델은 자유 입력(기본 claude-haiku-4-5 / gpt-5-mini — 모델 단종에 대비해 select 대신 텍스트). 시스템 프롬프트 기본값은 영어 회화 파트너(짧은 답 + 문법 교정 괄호), 설정에서 수정 가능. 전송 시 최근 20개 메시지만 보냄(SEND_WINDOW), storage 보관은 최대 100개.
 
-**웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 웹뷰는 `.webview-host`(`.webview-frame`의 padding 안쪽)를 추적하므로 카드 가장자리 6~14px이 HTML로 남는다 → **4모서리 리사이즈 핸들이 웹뷰에 가려지지 않음**. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
+**웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
+- **리사이즈 핸들 문제와 해법(동적 수축)**: 네이티브 웹뷰가 덮은 픽셀의 마우스 이벤트는 HTML 핸들에 절대 도달하지 않는다(z-index 무관, OS 표면이 가로챔). 그래서 평소엔 웹뷰가 카드를 꽉 채우고, `cursorPosition()`(커서가 웹뷰 위에 있어도 동작하는 전역 폴링 API, 90ms 간격)으로 커서가 카드 가장자리 띠(안쪽 22px~바깥 10px)에 들어온 걸 감지하면 웹뷰를 좌/우/하단 18px 수축해 핸들을 노출한다. 상단(ne/nw) 핸들은 HTML인 헤더 위라 수축 불필요. 가장자리 이탈 후 350ms 유예(깜빡임 방지).
+- 커서 좌표 변환: `(cursorPosition - innerPosition) / scaleFactor` = 클라이언트 CSS px. capability에 `core:window:allow-cursor-position`, `allow-inner-position`, `allow-scale-factor` 필요(등록됨).
+- 커서 API 실패 시 고정 inset 14px로 자동 폴백.
 
 ## 작업 이력
 
@@ -164,7 +167,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 |------|------|
 | (this) | 웹뷰 inset frame + 4모서리 핸들 완성, 정렬 버튼, aichat 플러그인 |
 
-- **웹뷰 가려짐 문제 근본 해결**: youtube/teams의 추적 로직을 `useChildWebview` 훅으로 추출하면서, 웹뷰가 카드 전체가 아니라 `.webview-frame` padding 안쪽(`.webview-host`)을 추적하게 변경. 카드 가장자리가 HTML로 남아 SW 핸들도 동작 → `resizeHandles={["se","sw","ne","nw"]}` 4모서리 전부 활성화.
+- **웹뷰 가려짐 문제 근본 해결**: youtube/teams의 추적 로직을 `useChildWebview` 훅으로 추출하고 4모서리 핸들 전부 활성화(`["se","sw","ne","nw"]`). 처음엔 고정 마진(inset frame)으로 구현했으나 사용자가 "평소엔 꽉 채우고 싶다"고 해서 **커서 근접 감지 기반 동적 수축**으로 교체 (위 구현 메모 참조). 동적 수축은 Tauri 전용이라 데스크탑 앱에서 실검증 필요.
 - **⊞ 정렬 버튼** (topbar): 깨진 레이아웃 복구용. 현재 배치의 읽기 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채 좌상단부터 선반(shelf) 방식 재배치. 화면 밖으로 나간 카드도 복구됨. 이를 위해 PluginCard에 외부 좌표 변경 동기화 effect 추가(`instance.x/y` 변경 시 로컬 드래그 상태 갱신 — 이게 없으면 정렬해도 카드가 안 움직임).
 - **aichat 플러그인**: Claude/GPT 듀얼 provider 영어 채팅 (위 구현 메모 참조). 검증: 무효 키로 OpenAI 실서버 401 왕복, provider 전환·설정 저장, 버블 UI. Claude 경로는 translator와 동일 코드 패턴이라 실키 검증은 사용자 몫.
 

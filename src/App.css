@@ -138,12 +138,11 @@ button {
 }
 
 /* ---- child webview 임베드 (youtube, teams) ---- */
-/* 웹뷰는 .webview-host의 rect를 추적한다. frame의 padding만큼 카드 가장자리가
-   HTML로 남아서 4모서리 리사이즈 핸들이 네이티브 웹뷰에 가려지지 않는다. */
+/* 웹뷰는 .webview-host의 rect를 추적하되, 평소엔 카드를 꽉 채우고
+   커서가 가장자리에 오면 동적으로 수축해 핸들을 노출한다 (useChildWebview 참조). */
 
 .webview-frame {
   height: 100%;
-  padding: 6px 14px 14px;
 }
 
 .webview-host {

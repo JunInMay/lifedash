@@ -10,6 +10,9 @@
     "core:webview:allow-webview-close",
     "core:webview:allow-set-webview-position",
     "core:webview:allow-set-webview-size",
+    "core:window:allow-cursor-position",
+    "core:window:allow-inner-position",
+    "core:window:allow-scale-factor",
     {
       "identifier": "http:default",
       "allow": [
