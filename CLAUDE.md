@@ -122,6 +122,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `aichat` | AI 채팅 | Claude/GPT 선택, 영어 회화용 시스템 프롬프트 기본값, 대화 storage 영속 | Anthropic / OpenAI API (키 필요) |
 | `news` | 뉴스 | 국가별(한/미/일/영/독 다중 선택) 실시간 헤드라인, 국가 간 라운드로빈 공평 배분, 5분 갱신 | Google News RSS (무키) |
 | `stocks` | 종목 검색 | 미국·한국 주식/ETF 검색, 일간 등락·3개월 차트·재무지표·즐겨찾기 | Yahoo Finance (무키, 아래 메모 필독) |
+| `videoplayer` | 동영상 재생기 | 여러 경로의 로컬 동영상을 모아 재생, 우측 목록·호버 컨트롤·카드 내 최대화 | - (로컬 파일, 데스크탑 전용) |
 
 ### 플러그인별 구현 메모
 
@@ -155,6 +156,8 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - **현재 정책 (상시 꽉 채움)**: 웹뷰가 카드 본문을 사실상 꽉 채운다. 단 좌/우/하단 3px(`CORNER_INSET`)만 안쪽으로 — 카드 border-radius 10px의 곡선이 직각에서 최대 ~3px 벗어나므로, 이만큼 넣으면 웹뷰의 사각 모서리가 카드의 둥근 윤곽선을 뚫고 나오지 않는다. 네이티브 웹뷰 자체를 둥글게 깎는 API는 Tauri에 없음.
 - **알려진 제약**: 네이티브 웹뷰가 덮은 픽셀의 마우스 이벤트는 HTML 핸들에 절대 도달하지 않는다(z-index 무관, OS 표면이 가로챔). 따라서 웹뷰 플러그인의 하단(se/sw) 핸들은 동작하지 않고, **리사이즈는 HTML 헤더 위에 있는 상단(ne/nw) 핸들로 한다**. 일반 플러그인은 4모서리 전부 동작.
 - 이동(드래그)은 헤더가 HTML이라 항상 정상.
+
+**videoplayer** — `<video>` 엘리먼트 기반(웹뷰 아님 — youtube/teams의 z-order/리사이즈 제약 없음). 좌측 video + 우측 동영상 목록(추가/제거), 영상에 호버하면 중앙에 이전/재생-정지/다음 오버레이 + 우하단에 카드 내 최대화(목록 숨김) 버튼이 나타남. 동영상은 폴더 스캔이 아니라 **파일 다이얼로그로 개별 경로를 모아** storage에 저장(`{path, name}[]`). 마운트/목록 변경 시 `@tauri-apps/plugin-fs`의 `exists()`로 각 경로 생존 확인 → 없으면 목록에 빨간 글씨 + 재생 시 "파일을 찾을 수 없습니다" 표시. `convertFileSrc`(asset 프로토콜)로 로컬 경로를 `<video src>`에 연결. 신규 인프라: `tauri-plugin-fs`/`tauri-plugin-dialog` (Cargo + lib.rs 등록), capability에 `dialog:default` + `fs:allow-exists`(scope `**`), `tauri.conf.json`에 `app.security.assetProtocol: { enable: true, scope: ["**/*"] }`, tauri 의존성에 `protocol-asset` feature 추가(빠지면 `tauri dev/build`가 "allowlist mismatch" 에러). 브라우저 dev에서는 "데스크탑 전용" 안내만 표시.
 
 ## 작업 이력
 
@@ -197,6 +200,9 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - **TODO.md 작성**: 사용자가 제시한 12개(이후 14개) 향후 과제를 카드 UI/배치/앱 셸/계정 영역으로 정리. 마켓형 플러그인 전환 세부 과제도 별도 정리.
 - **사내망 SSL 인터셉션으로 인한 빌드 앱 markets 버그 수정**: `npm run tauri build`로 만든 실제 앱에서 시장 지표가 "Unexpected token '<'" 에러로 실패. 원인은 `tauri-plugin-http`(reqwest) 기본 `rustls-tls`가 webpki-roots만 신뢰해 회사 자체 서명 루트 인증서를 검증 못 하고, catch로 넘어간 `/yahoo` 프록시 fallback도 production엔 없어 index.html을 받아옴. `Cargo.toml`에서 `rustls-tls-native-roots`(Windows 인증서 저장소 신뢰)로 전환해 해결. 사용자가 재빌드 후 정상 동작 확인.
 - **헤더 더블클릭 최대화/복원 토글 추가**: `Dashboard.jsx`의 `handleMaximizeToggle` — 더블클릭한 카드를 다른 카드와 겹치지 않는 선에서 상하좌우 독립적으로 그리디 확장(각 방향은 현재 footprint와 겹치는 카드들의 가장 가까운 경계 또는 보드 끝까지). 인스턴스에 `_prev`(이전 x/y/w/h)를 저장해두고, 다시 더블클릭하면 복원. L자형 빈 공간까지 채우는 진짜 maximal-rectangle은 아니고 "현재 footprint 기준 독립 4방향 확장"이라는 단순화된 근사. `PluginCard`의 `.plugin-handle`에 `onDoubleClick` 연결.
+
+### 2026-06-11 (이어서, Sonnet)
+- **videoplayer 플러그인 추가**: 갑갑한 화면에서 자연 풍경 동영상으로 리프레시하자는 사용자 아이디어를 구현(상세는 위 구현 메모 참조). 신규 Tauri 인프라(fs/dialog 플러그인, asset 프로토콜, `protocol-asset` feature) 추가. 검증: `npm run build` ✅, `cargo check` ✅(신규 의존성 컴파일 포함, ~1m40s), 브라우저 프리뷰에서 "데스크탑 전용" 폴백 렌더 확인. 파일 다이얼로그/asset 재생 등 네이티브 경로는 `npm run tauri dev`에서 사용자 확인 필요.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

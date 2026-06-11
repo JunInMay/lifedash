@@ -10,6 +10,11 @@
     "core:webview:allow-webview-close",
     "core:webview:allow-set-webview-position",
     "core:webview:allow-set-webview-size",
+    "dialog:default",
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "**" }]
+    },
     {
       "identifier": "http:default",
       "allow": [

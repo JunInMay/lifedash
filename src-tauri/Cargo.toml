@@ -19,12 +19,14 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 # "unstable": 한 윈도우 안에 child webview를 띄우기 위해 필요 (유튜브 플러그인)
-tauri = { version = "2", features = ["unstable"] }
+tauri = { version = "2", features = ["unstable", "protocol-asset"] }
 # 사내망 SSL 인터셉션(자체 서명 루트 인증서) 대응: rustls 기본 webpki-roots 대신
 # OS(Windows) 인증서 저장소를 신뢰하는 rustls-tls-native-roots 사용
 tauri-plugin-http = { version = "2", default-features = false, features = [
     "rustls-tls-native-roots", "http2", "charset", "macos-system-configuration", "cookies",
 ] }
 tauri-plugin-opener = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

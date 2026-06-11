@@ -1,0 +1,9 @@
+{
+  "id": "videoplayer",
+  "name": "동영상 재생기",
+  "icon": "🎬",
+  "description": "여러 경로에 흩어진 로컬 자연 풍경 동영상을 모아 재생",
+  "version": "1.0.0",
+  "defaultSize": { "w": 480, "h": 320 },
+  "minSize": { "w": 320, "h": 220 }
+}
