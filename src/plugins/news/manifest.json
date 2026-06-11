@@ -1,0 +1,9 @@
+{
+  "id": "news",
+  "name": "뉴스",
+  "icon": "📰",
+  "description": "국가별 실시간 헤드라인 — 선택 국가 공평 배분, 5분 갱신",
+  "version": "1.0.0",
+  "defaultSize": { "w": 420, "h": 460 },
+  "minSize": { "w": 300, "h": 280 }
+}

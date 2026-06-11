@@ -18,7 +18,8 @@
         { "url": "https://translate.googleapis.com/*" },
         { "url": "https://api.anthropic.com/*" },
         { "url": "https://api.dictionaryapi.dev/*" },
-        { "url": "https://api.openai.com/*" }
+        { "url": "https://api.openai.com/*" },
+        { "url": "https://news.google.com/*" }
       ]
     }
   ]

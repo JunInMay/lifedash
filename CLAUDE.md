@@ -120,6 +120,8 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `dictionary` | 사전 | 영영/영한, 좌측 뜻풀이 + 우측 검색 기록 재조회 | dictionaryapi.dev / 구글 gtx `dt=bd` |
 | `teams` | 팀즈 | child webview로 진짜 teams.microsoft.com을 카드 위에 표시 (youtube와 동일 패턴) | - (데스크탑 전용) |
 | `aichat` | AI 채팅 | Claude/GPT 선택, 영어 회화용 시스템 프롬프트 기본값, 대화 storage 영속 | Anthropic / OpenAI API (키 필요) |
+| `news` | 뉴스 | 국가별(한/미/일/영/독 다중 선택) 실시간 헤드라인, 국가 간 라운드로빈 공평 배분, 5분 갱신 | Google News RSS (무키) |
+| `stocks` | 종목 검색 | 미국·한국 주식/ETF 검색, 일간 등락·3개월 차트·재무지표·즐겨찾기 | Yahoo Finance (무키, 아래 메모 필독) |
 
 ### 플러그인별 구현 메모
 
@@ -138,6 +140,16 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 **teams** — youtube 플러그인을 그대로 복제해 URL만 `teams.microsoft.com`으로 교체. 추가 capability/proxy 불필요(웹뷰 생성은 도메인 제한 없음, CSP가 null). 매번 로그인해도 무방하다는 사용자 확인 하에 진행. youtube와 동일한 z-order/브라우저 dev 제약을 그대로 가짐.
 
 **aichat** — provider 추상화는 `api.js`의 `sendChat({provider, ...})`. Claude는 `anthropic-dangerous-direct-browser-access` 헤더로 어디서든 직접 호출, OpenAI는 브라우저 CORS 불가라 dev는 `/openai` 프록시·Tauri는 plugin-http. 키/모델은 provider별로 storage에 분리 저장(`keys`, `models` 맵). 모델은 자유 입력(기본 claude-haiku-4-5 / gpt-5-mini — 모델 단종에 대비해 select 대신 텍스트). 시스템 프롬프트 기본값은 영어 회화 파트너(짧은 답 + 문법 교정 괄호), 설정에서 수정 가능. 전송 시 최근 20개 메시지만 보냄(SEND_WINDOW), storage 보관은 최대 100개.
+
+**news** — Google News RSS (`news.google.com/rss?hl=..&gl=..&ceid=..`), 국가별 파라미터는 `api.js`의 COUNTRIES. 선택 국가들을 국가당 동일 개수로 가져와 라운드로빈 교차 배치(기사량 많은 국가의 독점 방지 — 사용자 요구). 제목의 " - 매체명" 접미사는 `<source>`와 중복이라 제거. 원래 요구사항에 있던 "1/7/30일 영향력 기사 랭킹"은 무료·무키 소스 부재로 **스펙 아웃** (사용자 확정).
+
+**stocks — 재무 데이터 소스 메모 (필독, 사용자 지시로 기록)**
+- 검색: Yahoo `v1/finance/search` — 단, **한글 쿼리는 400 (Invalid Search Query)으로 거부됨** (프록시/직접 호출 모두 실측 확인. lookup 엔드포인트는 200이나 한글 매칭 결과 없음). 영문명("samsung")·종목코드("005930")는 한국 종목까지 정상 반환.
+- 한글 검색 해법: **내장 한국 주요 종목 테이블** `krSymbols.js` (~55종, KOSPI/KOSDAQ/ETF). 네이버 증권 API(`ac.stock.naver.com`)가 정석 대안이지만 **사용자 회사망이 증권 사이트를 차단**해서 불가 (Yahoo Finance API는 차단 안 됨). 집 네트워크 전용이라면 네이버 폴백 추가 가능.
+- 재무지표: v10 quoteSummary는 2023년부터 **crumb+쿠키 인증 필요(401)** → 대신 무인증으로 동작하는 **`/ws/fundamentals-timeseries/v1/finance/timeseries/{symbol}`** 사용 (Yahoo 재무 차트 페이지가 쓰는 엔드포인트). type 파라미터로 trailingPeRatio/trailingPbRatio/trailingMarketCap/annualTotalRevenue/annualOperatingIncome/annualNetIncome 요청, KR 종목 포함 동작 확인. 막히면 crumb 흐름(fc.yahoo.com 쿠키 → /v1/test/getcrumb)으로 전환 검토.
+- 시세/차트: v8 chart `range=3mo&interval=1d`. ⚠️ 이 범위에서 `meta.chartPreviousClose`는 전일이 아니라 **3개월 전 종가** — 일간 등락률은 마지막 두 일봉으로 계산해야 함 (실제로 +57.89%로 잘못 나왔던 버그 수정함).
+- markets 플러그인의 `Chart.jsx`/`fmtPrice`/`trendColor`를 import해 재사용 (플러그인 간 의존 첫 사례).
+- Yahoo는 과도 호출 시 429를 줌 — 검색은 400ms 디바운스 적용.
 
 **웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
 - **현재 정책 (상시 꽉 채움)**: 웹뷰가 카드 본문을 사실상 꽉 채운다. 단 좌/우/하단 3px(`CORNER_INSET`)만 안쪽으로 — 카드 border-radius 10px의 곡선이 직각에서 최대 ~3px 벗어나므로, 이만큼 넣으면 웹뷰의 사각 모서리가 카드의 둥근 윤곽선을 뚫고 나오지 않는다. 네이티브 웹뷰 자체를 둥글게 깎는 API는 Tauri에 없음.
@@ -174,6 +186,12 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - **⊞ 정렬 버튼** (topbar): 깨진 레이아웃 복구용. 현재 배치의 읽기 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채 재배치. 화면 밖으로 나간 카드도 복구됨. 이를 위해 PluginCard에 외부 좌표 변경 동기화 effect 추가(`instance.x/y` 변경 시 로컬 드래그 상태 갱신 — 이게 없으면 정렬해도 카드가 안 움직임).
 - **정렬 알고리즘 개선 (사용자 피드백 반영)**: 처음엔 행 단위 선반(shelf) 방식이었는데, 한 줄의 높이가 가장 키 큰 카드로 잡혀서 키 작은 카드 아래 공간이 통째로 버려지는 문제 지적받음. **bottom-left 그리디 패킹**으로 교체 — 각 카드를 "가장 위쪽, 그중 가장 왼쪽"의 들어갈 수 있는 빈자리에 배치(후보 = 좌상단 + 놓인 카드들의 바로 아래/바로 오른쪽, y→x 정렬 후 첫 비충돌 위치). 간격도 16px → **4px**(거의 밀착)로 축소. 검증: 높이 100/200 첫 줄 후 300짜리가 100짜리 바로 아래(y=108)에 끼어 들어가는 것 확인.
 - **aichat 플러그인**: Claude/GPT 듀얼 provider 영어 채팅 (위 구현 메모 참조). 검증: 무효 키로 OpenAI 실서버 401 왕복, provider 전환·설정 저장, 버블 UI. Claude 경로는 translator와 동일 코드 패턴이라 실키 검증은 사용자 몫.
+
+### 2026-06-11 (이어서)
+- **뉴스/종목 검색 플러그인 추가** (요구사항: 사용자 제공 표 기반, 일부 스펙은 협의로 조정)
+  - 뉴스: 기간(1/7/30일) 영향력 랭킹은 스펙 아웃, 실시간 헤드라인 + 국가 다중 선택 + 공평 배분으로 확정
+  - 종목: 재무제표 필수 반영. 데이터 소스 조사 결과는 위 stocks 메모 참조 (Yahoo 한글 검색 거부, 회사망의 증권 사이트 차단, fundamentals-timeseries 우회)
+  - 검증: KR/US 헤드라인 교차 배치, 삼성전자(005930.KS) 시세·차트·재무 12항목, QQQ ETF 검색, 즐겨찾기 저장
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

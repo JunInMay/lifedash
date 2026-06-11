@@ -53,6 +53,13 @@ export default defineConfig(async () => ({
         secure: false,
         rewrite: (path) => path.replace(/^\/openai/, ""),
       },
+      // 뉴스 플러그인: Google News RSS
+      "/gnews": {
+        target: "https://news.google.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/gnews/, ""),
+      },
       // 사전(영영) 플러그인: Free Dictionary API
       "/dict": {
         target: "https://api.dictionaryapi.dev",

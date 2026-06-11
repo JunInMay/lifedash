@@ -1,0 +1,9 @@
+{
+  "id": "stocks",
+  "name": "종목 검색",
+  "icon": "🔎",
+  "description": "미국·한국 주식/ETF 검색 — 가격·차트·재무지표·즐겨찾기",
+  "version": "1.0.0",
+  "defaultSize": { "w": 640, "h": 440 },
+  "minSize": { "w": 460, "h": 320 }
+}
