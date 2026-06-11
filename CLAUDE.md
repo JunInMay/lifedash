@@ -119,6 +119,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `translator` | 번역기 | 하이브리드: 무료 구글 기본, Claude API 키 입력 시 AI 번역 | 구글 gtx / Anthropic Messages API |
 | `dictionary` | 사전 | 영영/영한, 좌측 뜻풀이 + 우측 검색 기록 재조회 | dictionaryapi.dev / 구글 gtx `dt=bd` |
 | `teams` | 팀즈 | child webview로 진짜 teams.microsoft.com을 카드 위에 표시 (youtube와 동일 패턴) | - (데스크탑 전용) |
+| `aichat` | AI 채팅 | Claude/GPT 선택, 영어 회화용 시스템 프롬프트 기본값, 대화 storage 영속 | Anthropic / OpenAI API (키 필요) |
 
 ### 플러그인별 구현 메모
 
@@ -136,6 +137,10 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 
 **teams** — youtube 플러그인을 그대로 복제해 URL만 `teams.microsoft.com`으로 교체. 추가 capability/proxy 불필요(웹뷰 생성은 도메인 제한 없음, CSP가 null). 매번 로그인해도 무방하다는 사용자 확인 하에 진행. youtube와 동일한 z-order/브라우저 dev 제약을 그대로 가짐.
 
+**aichat** — provider 추상화는 `api.js`의 `sendChat({provider, ...})`. Claude는 `anthropic-dangerous-direct-browser-access` 헤더로 어디서든 직접 호출, OpenAI는 브라우저 CORS 불가라 dev는 `/openai` 프록시·Tauri는 plugin-http. 키/모델은 provider별로 storage에 분리 저장(`keys`, `models` 맵). 모델은 자유 입력(기본 claude-haiku-4-5 / gpt-5-mini — 모델 단종에 대비해 select 대신 텍스트). 시스템 프롬프트 기본값은 영어 회화 파트너(짧은 답 + 문법 교정 괄호), 설정에서 수정 가능. 전송 시 최근 20개 메시지만 보냄(SEND_WINDOW), storage 보관은 최대 100개.
+
+**웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 웹뷰는 `.webview-host`(`.webview-frame`의 padding 안쪽)를 추적하므로 카드 가장자리 6~14px이 HTML로 남는다 → **4모서리 리사이즈 핸들이 웹뷰에 가려지지 않음**. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
+
 ## 작업 이력
 
 ### 2026-06-10, Claude Fable 5
@@ -150,10 +155,18 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 
 검증된 것: 프론트 빌드, cargo check(권한/capability 빌드타임 검증 포함), 브라우저 프리뷰에서 각 플러그인 실데이터 동작(시장 지표 실시세, 번역 한↔영, 사전 양 모드, 기록 재조회).
 
-### 2026-06-10 (이어서)
+### 2026-06-10 (이어서, Sonnet)
 - **teams 플러그인 추가**: youtube와 동일한 child webview 패턴, `teams.microsoft.com` 임베드. 사용자가 데스크탑 앱에서 로그인까지 정상 동작 확인.
-- **PluginCard 리사이즈 핸들 NW/NE 추가**: SE만 있던 기본 핸들에 좌상/우상 추가 (`resizeHandles={["se","ne","nw"]}`). youtube/teams처럼 child webview가 카드 본문(`.plugin-body`) 전체를 덮어 SE 핸들이 가려지는 문제의 우회책 — 헤더 영역(웹뷰가 안 덮는 곳)에 핸들을 추가. NW/NE로 리사이즈하면 카드 좌상단 기준점이 이동하므로, `onResizeStart`에서 시작 위치/크기를 기록하고 핸들 방향(`n`/`w` 포함 여부)에 따라 위치(x, y)도 함께 보정. 사용자가 동작 확인 완료.
-- 알아둘 점: SW 핸들은 추가 안 함(아직 가려짐 문제 미해결 — 필요 시 webview hide 연동 검토, [알려진 이슈](#알려진-이슈--리스크) 참조)
+- **PluginCard 리사이즈 핸들 NW/NE 추가**: SE만 있던 기본 핸들에 좌상/우상 추가. NW/NE 리사이즈 시 기준점 이동 보정(`onResizeStart`에서 시작값 기록, `n`/`w` 포함 핸들이면 x/y 보정). SW는 웹뷰 가려짐 문제로 보류했었음.
+
+### 2026-06-11, Claude Fable 5
+| 커밋 | 내용 |
+|------|------|
+| (this) | 웹뷰 inset frame + 4모서리 핸들 완성, 정렬 버튼, aichat 플러그인 |
+
+- **웹뷰 가려짐 문제 근본 해결**: youtube/teams의 추적 로직을 `useChildWebview` 훅으로 추출하면서, 웹뷰가 카드 전체가 아니라 `.webview-frame` padding 안쪽(`.webview-host`)을 추적하게 변경. 카드 가장자리가 HTML로 남아 SW 핸들도 동작 → `resizeHandles={["se","sw","ne","nw"]}` 4모서리 전부 활성화.
+- **⊞ 정렬 버튼** (topbar): 깨진 레이아웃 복구용. 현재 배치의 읽기 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채 좌상단부터 선반(shelf) 방식 재배치. 화면 밖으로 나간 카드도 복구됨. 이를 위해 PluginCard에 외부 좌표 변경 동기화 effect 추가(`instance.x/y` 변경 시 로컬 드래그 상태 갱신 — 이게 없으면 정렬해도 카드가 안 움직임).
+- **aichat 플러그인**: Claude/GPT 듀얼 provider 영어 채팅 (위 구현 메모 참조). 검증: 무효 키로 OpenAI 실서버 401 왕복, provider 전환·설정 저장, 버블 UI. Claude 경로는 translator와 동일 코드 패턴이라 실키 검증은 사용자 몫.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

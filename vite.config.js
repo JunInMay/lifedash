@@ -46,6 +46,13 @@ export default defineConfig(async () => ({
         secure: false,
         rewrite: (path) => path.replace(/^\/gtx/, ""),
       },
+      // AI 채팅 플러그인: OpenAI (브라우저 CORS 불가 → 프록시 필수)
+      "/openai": {
+        target: "https://api.openai.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/openai/, ""),
+      },
       // 사전(영영) 플러그인: Free Dictionary API
       "/dict": {
         target: "https://api.dictionaryapi.dev",

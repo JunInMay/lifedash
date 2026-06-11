@@ -1,0 +1,9 @@
+{
+  "id": "aichat",
+  "name": "AI 채팅",
+  "icon": "💬",
+  "description": "Claude/GPT와 영어 회화 채팅 — 설정(⚙)에 API 키 입력",
+  "version": "1.0.0",
+  "defaultSize": { "w": 380, "h": 460 },
+  "minSize": { "w": 280, "h": 320 }
+}

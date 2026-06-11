@@ -134,6 +134,36 @@ button {
 /* react-resizable 핸들 다크테마 보정 */
 .react-resizable-handle {
   filter: invert(0.7);
+  z-index: 10;
+}
+
+/* ---- child webview 임베드 (youtube, teams) ---- */
+/* 웹뷰는 .webview-host의 rect를 추적한다. frame의 padding만큼 카드 가장자리가
+   HTML로 남아서 4모서리 리사이즈 핸들이 네이티브 웹뷰에 가려지지 않는다. */
+
+.webview-frame {
+  height: 100%;
+  padding: 6px 14px 14px;
+}
+
+.webview-host {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #5b6270;
+  font-size: 13px;
+  line-height: 1.6;
+  border-radius: 4px;
+  background: #15171c;
+}
+
+.webview-error {
+  color: #f87171;
+  font-size: 12px;
+  word-break: break-all;
+  padding: 8px;
 }
 
 /* ---- 플러그인 드로어 ---- */

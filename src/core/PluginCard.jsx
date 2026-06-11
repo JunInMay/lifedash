@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import { ResizableBox } from "react-resizable";
 import { getPlugin } from "./PluginRegistry";
@@ -10,6 +10,12 @@ function PluginCard({ instance, onMove, onResize, onRemove }) {
   const nodeRef = useRef(null);
   const [pos, setPos] = useState({ x: instance.x, y: instance.y });
   const resizeStart = useRef(null);
+
+  // 정렬 버튼 등 외부에서 좌표가 바뀌면 로컬 드래그 상태도 따라가게 동기화
+  useEffect(() => {
+    setPos({ x: instance.x, y: instance.y });
+  }, [instance.x, instance.y]);
+
   const Plugin = getPlugin(instance.pluginId);
   const storage = useMemo(
     () => createPluginStorage(instance.instanceId),
@@ -37,7 +43,7 @@ function PluginCard({ instance, onMove, onResize, onRemove }) {
           width={instance.w}
           height={instance.h}
           minConstraints={[minSize.w, minSize.h]}
-          resizeHandles={["se", "ne", "nw"]}
+          resizeHandles={["se", "sw", "ne", "nw"]}
           onResizeStart={(_e, { size, handle }) => {
             resizeStart.current = { x: pos.x, y: pos.y, w: size.width, h: size.height, handle };
           }}
