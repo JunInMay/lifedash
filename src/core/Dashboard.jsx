@@ -52,26 +52,49 @@ function Dashboard() {
     update(instances.filter((it) => it.instanceId !== instanceId));
   };
 
-  // 정렬: 현재 화면 배치 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채
-  // 좌상단부터 선반(shelf) 방식으로 재배치한다. 깨진 레이아웃 복구용.
+  // 정렬: 현재 배치의 읽기 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채,
+  // 각 카드를 "가장 위쪽, 그중 가장 왼쪽"의 들어갈 수 있는 빈자리에 채워 넣는다
+  // (bottom-left 그리디 패킹). 행 단위 선반 방식과 달리 키 큰 카드 옆의
+  // 빈 공간에도 다음 카드가 들어가므로 세로 낭비가 없다. 깨진 레이아웃 복구용.
   const arrange = () => {
-    const GAP = 16;
+    const GAP = 4;
     const boardW = boardRef.current?.clientWidth ?? window.innerWidth;
     const ordered = [...instances].sort((a, b) => a.y - b.y || a.x - b.x);
 
+    const placed = [];
     const coords = new Map();
-    let x = GAP;
-    let y = GAP;
-    let rowH = 0;
+
+    const collides = (x, y, w, h) =>
+      placed.some(
+        (p) =>
+          !(
+            x >= p.x + p.w + GAP ||
+            p.x >= x + w + GAP ||
+            y >= p.y + p.h + GAP ||
+            p.y >= y + h + GAP
+          )
+      );
+
     for (const it of ordered) {
-      if (x > GAP && x + it.w > boardW - GAP) {
-        x = GAP;
-        y += rowH + GAP;
-        rowH = 0;
+      // 후보 위치: 좌상단 + 이미 놓인 카드들의 바로 아래/바로 오른쪽
+      const candidates = [{ x: GAP, y: GAP }];
+      for (const p of placed) {
+        candidates.push({ x: p.x, y: p.y + p.h + GAP });
+        candidates.push({ x: p.x + p.w + GAP, y: p.y });
+        candidates.push({ x: GAP, y: p.y + p.h + GAP });
       }
-      coords.set(it.instanceId, { x, y });
-      x += it.w + GAP;
-      rowH = Math.max(rowH, it.h);
+      candidates.sort((a, b) => a.y - b.y || a.x - b.x);
+
+      let pos = candidates.find(
+        (c) => c.x + it.w <= boardW - GAP && !collides(c.x, c.y, it.w, it.h)
+      );
+      if (!pos) {
+        // 보드 폭보다 넓은 카드 등: 모든 카드 아래에 단독 배치
+        const bottom = placed.reduce((m, p) => Math.max(m, p.y + p.h), 0);
+        pos = { x: GAP, y: bottom + GAP };
+      }
+      placed.push({ x: pos.x, y: pos.y, w: it.w, h: it.h });
+      coords.set(it.instanceId, { x: pos.x, y: pos.y });
     }
 
     update(instances.map((it) => ({ ...it, ...coords.get(it.instanceId) })));
