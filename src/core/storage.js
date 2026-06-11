@@ -5,6 +5,7 @@
 
 const LAYOUT_KEY = "lifedash.layout";
 const PLUGIN_PREFIX = "lifedash.plugin.";
+const SHARED_PREFIX = "lifedash.shared.";
 
 function read(key, fallback) {
   try {
@@ -47,4 +48,28 @@ export function createPluginStorage(instanceId) {
 /** 인스턴스 제거 시 해당 플러그인 데이터도 함께 삭제 */
 export function clearPluginStorage(instanceId) {
   localStorage.removeItem(PLUGIN_PREFIX + instanceId);
+}
+
+/**
+ * 같은 플러그인의 모든 인스턴스가 공유하는 저장소(인스턴스 제거와 무관하게 유지).
+ * 예: videoplayer의 동영상 목록 — 카드를 닫았다 다시 추가해도 목록이 남아있어야 함.
+ */
+export function createSharedStorage(pluginId) {
+  const key = SHARED_PREFIX + pluginId;
+  return {
+    get(field, fallback = null) {
+      const data = read(key, {});
+      return field in data ? data[field] : fallback;
+    },
+    set(field, value) {
+      const data = read(key, {});
+      data[field] = value;
+      localStorage.setItem(key, JSON.stringify(data));
+    },
+    remove(field) {
+      const data = read(key, {});
+      delete data[field];
+      localStorage.setItem(key, JSON.stringify(data));
+    },
+  };
 }

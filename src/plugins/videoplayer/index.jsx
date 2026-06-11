@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { createSharedStorage } from "../../core/storage";
 import "./videoplayer.css";
+
+// 동영상 목록은 카드를 닫았다 다시 추가해도 유지되어야 하는 "라이브러리"이므로
+// 인스턴스별 storage가 아니라 플러그인 공유 storage에 저장한다.
+const library = createSharedStorage("videoplayer");
 
 const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
 const VIDEO_EXTENSIONS = ["mp4", "webm", "mkv", "mov", "avi", "m4v"];
@@ -8,8 +13,8 @@ function fileName(path) {
   return path.split(/[\\/]/).pop();
 }
 
-function VideoPlayerPlugin({ storage }) {
-  const [videos, setVideos] = useState(() => storage.get("videos", []));
+function VideoPlayerPlugin() {
+  const [videos, setVideos] = useState(() => library.get("videos", []));
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [maximized, setMaximized] = useState(false);
@@ -48,7 +53,7 @@ function VideoPlayerPlugin({ storage }) {
 
   const persist = (next) => {
     setVideos(next);
-    storage.set("videos", next);
+    library.set("videos", next);
   };
 
   const addVideos = async () => {
