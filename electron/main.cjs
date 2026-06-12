@@ -1,13 +1,14 @@
 // lifedash-fable Electron 메인 프로세스.
 // Tauri에서 마이그레이션 (MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
 // DOM에 합성되어 z-index/클리핑이 일반 카드처럼 동작한다는 것 (PoC 검증됨).
-const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const SMOKE = process.env.LIFEDASH_SMOKE === "1"; // CI/에이전트 검증용: 창 숨기고 자가진단 후 종료
+const NOTIFICATIONS_ENABLED = false;
 
 // 로컬 동영상 재생용 커스텀 프로토콜 (videoplayer 플러그인).
 // http(s) 페이지에서 file://를 직접 못 읽으므로 media://v/?p=<encoded path>로 우회.
@@ -24,6 +25,7 @@ function createWindow() {
     backgroundColor: "#15171c",
     show: !SMOKE,
     title: "lifedash-fable",
+    icon: path.join(__dirname, "..", "build", "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -48,6 +50,21 @@ function createWindow() {
 
   if (SMOKE) runSmokeTest(win);
   return win;
+}
+
+function blockNotifications(targetSession) {
+  targetSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    if (permission === "notifications") {
+      callback(NOTIFICATIONS_ENABLED);
+      return;
+    }
+    callback(false);
+  });
+
+  targetSession.setPermissionCheckHandler((_webContents, permission) => {
+    if (permission === "notifications") return NOTIFICATIONS_ENABLED;
+    return false;
+  });
 }
 
 // ---- IPC 핸들러 ----
@@ -144,6 +161,15 @@ app.userAgentFallback = app.userAgentFallback
   .replace(/\sElectron\/\S+/, "");
 
 app.whenReady().then(() => {
+  blockNotifications(session.defaultSession);
+  ["persist:youtube", "persist:teams", "persist:browser", "persist:webview"].forEach((partition) => {
+    blockNotifications(session.fromPartition(partition));
+  });
+
+  app.on("web-contents-created", (_event, contents) => {
+    blockNotifications(contents.session);
+  });
+
   protocol.handle("media", (req) => {
     const p = new URL(req.url).searchParams.get("p");
     if (!p) return new Response("bad request", { status: 400 });
