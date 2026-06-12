@@ -17,13 +17,17 @@
 
 ## 사용된 기술
 
-- Claude Code
-- React 19
-- Vite 7
-- Electron 31 (`<webview>` 태그, IPC 브리지)
-- JavaScript ES Modules
-- `react-draggable`
-- `react-resizable`
+| 분류 | 기술 | 버전/상태 | 용도 |
+| --- | --- | --- | --- |
+| 개발 도구 | Claude Code | 사용 | 구현 및 마이그레이션 작업 |
+| 프론트엔드 | [[React(리액트)]] | 19 | 플러그인 기반 UI 구성 |
+| 빌드 도구 | [[Vite(빌드 툴, Javascript)]] | 7 | 개발 서버 및 번들링 |
+| 데스크톱 셸 | [[Electron]] | 31 | 데스크톱 앱 실행, `<webview>`, IPC 브리지 |
+| 언어/모듈 | JavaScript ES Modules | 사용 | 앱 소스 모듈 시스템 |
+| 카드 조작 | `react-draggable` | 4.6.0 | 플러그인 카드 드래그 |
+| 카드 조작 | `react-resizable` | 4.0.1 | 플러그인 카드 리사이즈 |
+| 레거시 | Tauri | 2 | Electron 마이그레이션 후 `src-tauri/` 보존 |
+| 레거시 | `@tauri-apps/*` | devDependencies 보존 | 마이그레이션 이전 구현 참조 |
 
 ## 실행
 
