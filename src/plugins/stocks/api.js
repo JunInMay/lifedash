@@ -83,6 +83,10 @@ export async function fetchQuote(symbol) {
     high52: meta.fiftyTwoWeekHigh ?? null,
     low52: meta.fiftyTwoWeekLow ?? null,
     points,
+    // 시세 기준 시각. ⚠️ Yahoo의 KRX 데이터는 ~20분 지연이라 개장 직후엔
+    // 전일 종가/전일 시각이 그대로 온다 (실측 확인). 화면에 기준 시각을 표시해
+    // 사용자가 지연 여부를 알 수 있게 한다.
+    marketTime: meta.regularMarketTime ?? null,
   };
 }
 

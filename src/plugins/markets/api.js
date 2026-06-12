@@ -20,11 +20,7 @@ async function yahooGet(path) {
   return res.json();
 }
 
-/**
- * 지표 차트 조회.
- * @returns {{ symbol, price, prevClose, changePct, points: [{t, v}] }}
- */
-export async function fetchChart(symbol, range = "1d", interval = "5m") {
+async function requestChart(symbol, range, interval) {
   const path =
     `/v8/finance/chart/${encodeURIComponent(symbol)}` +
     `?range=${range}&interval=${interval}&includePrePost=false`;
@@ -47,7 +43,50 @@ export async function fetchChart(symbol, range = "1d", interval = "5m") {
   const changePct =
     price != null && prevClose ? ((price - prevClose) / prevClose) * 100 : null;
 
-  return { symbol, price, prevClose, changePct, points };
+  return {
+    symbol,
+    price,
+    prevClose,
+    changePct,
+    points,
+    marketTime: meta.regularMarketTime ?? null, // 시세 기준 시각 (unix초) — KRX는 ~20분 지연
+    gmtoffset: meta.gmtoffset ?? 0,
+  };
+}
+
+/**
+ * 지표 차트 조회.
+ * ⚠️ Yahoo의 KRX(한국) 데이터는 ~20분 지연이라, 개장 직후 1d 요청은 당일 캔들이
+ * 아예 없는 빈 응답이 온다 (실측: 09:10에 ^KS11 points=0, marketTime=전일).
+ * 이때는 2d로 재요청해 마지막 거래일 세션을 잘라 보여준다 (차트가 비지 않게).
+ * @returns {{ symbol, price, prevClose, changePct, points: [{t, v}], marketTime }}
+ */
+export async function fetchChart(symbol, range = "1d", interval = "5m") {
+  let data = await requestChart(symbol, range, interval);
+
+  if (range === "1d" && interval !== "1d" && data.points.length < 2) {
+    const wide = await requestChart(symbol, "2d", interval);
+    if (wide.points.length >= 2) {
+      const day = (t) => Math.floor((t + wide.gmtoffset) / 86400);
+      const lastDay = day(wide.points.at(-1).t);
+      wide.points = wide.points.filter((p) => day(p.t) === lastDay);
+      data = wide;
+    }
+  }
+  return data;
+}
+
+/** 시세 기준 시각 표시 — 오늘이면 "HH:mm 기준", 아니면 "MM.DD HH:mm 기준" */
+export function fmtMarketTime(unixSec) {
+  if (!unixSec) return "";
+  const d = new Date(unixSec * 1000);
+  const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const today = new Date();
+  const sameDay =
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
+  return sameDay ? `${hm} 기준` : `${d.getMonth() + 1}.${d.getDate()} ${hm} 기준`;
 }
 
 /** 숫자 표시용 포맷 (큰 수는 소수점 절삭) */

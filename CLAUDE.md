@@ -152,6 +152,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - 시세/차트: v8 chart `range=3mo&interval=1d`. ⚠️ 이 범위에서 `meta.chartPreviousClose`는 전일이 아니라 **3개월 전 종가** — 일간 등락률은 마지막 두 일봉으로 계산해야 함 (실제로 +57.89%로 잘못 나왔던 버그 수정함).
 - markets 플러그인의 `Chart.jsx`/`fmtPrice`/`trendColor`를 import해 재사용 (플러그인 간 의존 첫 사례).
 - Yahoo는 과도 호출 시 429를 줌 — 검색은 400ms 디바운스 적용.
+- **Yahoo KRX 데이터는 ~20분 지연 + 개장 직후 공백** (실측: 09:10에 ^KS11 1d 응답 캔들 0개, 삼성전자 regularMarketTime=전일 15:30). 대응: ① markets의 1d 차트는 캔들이 없으면 2d로 재요청해 마지막 거래일 세션을 잘라 표시, ② 두 플러그인 모두 시세 기준 시각(`meta.regularMarketTime`)을 화면에 표시해 지연을 드러냄, ③ stocks는 60초 자동 갱신 + 같은 종목 재클릭 시 강제 재조회(reloadTick).
 
 **웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
 - **현재 정책 (상시 꽉 채움)**: 웹뷰가 카드 본문을 사실상 꽉 채운다. 단 좌/우/하단 3px(`CORNER_INSET`)만 안쪽으로 — 카드 border-radius 10px의 곡선이 직각에서 최대 ~3px 벗어나므로, 이만큼 넣으면 웹뷰의 사각 모서리가 카드의 둥근 윤곽선을 뚫고 나오지 않는다. 네이티브 웹뷰 자체를 둥글게 깎는 API는 Tauri에 없음.
@@ -205,6 +206,12 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 ### 2026-06-11 (이어서, Sonnet)
 - **videoplayer 플러그인 추가**: 갑갑한 화면에서 자연 풍경 동영상으로 리프레시하자는 사용자 아이디어를 구현(상세는 위 구현 메모 참조). 신규 Tauri 인프라(fs/dialog 플러그인, asset 프로토콜, `protocol-asset` feature) 추가. 검증: `npm run build` ✅, `cargo check` ✅(신규 의존성 컴파일 포함, ~1m40s), 브라우저 프리뷰에서 "데스크탑 전용" 폴백 렌더 확인. 파일 다이얼로그/asset 재생 등 네이티브 경로는 `npm run tauri dev`에서 사용자 확인 필요.
 - **videoplayer 동영상 목록 유실 버그 수정**: 사용자가 "동영상 추가 → 카드 닫음 → 다시 추가 → 목록이 비어있음" 보고. 원인은 동영상 목록을 인스턴스별 storage(`lifedash.plugin.<instanceId>`)에 저장했는데, 카드 제거 시 `clearPluginStorage`가 이 키를 통째로 지우기 때문. `storage.js`에 `createSharedStorage(pluginId)` 추가(키 `lifedash.shared.<pluginId>`, 인스턴스 생명주기와 무관) — videoplayer는 이제 동영상 목록을 여기에 저장. 검증: `npm run build` ✅, 브라우저 콘솔에서 인스턴스 storage 삭제 후에도 공유 storage가 남는 것 확인.
+
+### 2026-06-12
+- **시장지표/종목 시세 정체 버그 수정** (사용자 리포트: 코스피 1일 차트 안 그려짐, 삼성전자 가격이 어제값)
+  - 원인 1: Yahoo KRX ~20분 지연 — 개장 직후 1d 차트 응답이 캔들 0개 (위 stocks 메모 참조)
+  - 원인 2: stocks 플러그인에 자동 갱신이 없었음 — 종목 선택 시 1회 조회 후 영구 정체 (조회 실패 시 재시도도 없었음)
+  - 수정: markets 1d→2d 폴백, stocks 60초 갱신 + 재클릭 재조회, 두 플러그인에 시세 기준 시각 표시
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { searchSymbols, fetchQuote, fetchFundamentals, fmtBig, fmtRatio } from "./api";
-import { fmtPrice, fmtPct, trendColor } from "../markets/api";
+import { fmtPrice, fmtPct, trendColor, fmtMarketTime } from "../markets/api";
 import Chart from "../markets/Chart";
 import "./stocks.css";
 
@@ -17,6 +17,7 @@ function StocksPlugin({ storage }) {
   const [fin, setFin] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0); // 같은 종목 재클릭 시 강제 재조회
   const debounceRef = useRef(0);
 
   // 검색어 디바운스
@@ -37,37 +38,48 @@ function StocksPlugin({ storage }) {
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  // 선택 종목 상세 로드 (시세는 필수, 재무는 실패해도 시세는 보여줌)
+  // 선택 종목 상세 로드 + 60초 자동 갱신 (시세만 — 재무는 종목당 1회면 충분)
   useEffect(() => {
     if (!symbol) return;
     let alive = true;
+
+    const loadQuote = async (isFirst) => {
+      try {
+        const q = await fetchQuote(symbol);
+        if (!alive) return;
+        setQuote(q);
+        if (!isFirst) setError(null);
+      } catch (err) {
+        // 주기 갱신 실패는 기존 화면 유지 (일시적 네트워크 오류 등)
+        if (alive && isFirst) setError(String(err?.message ?? err));
+      } finally {
+        if (alive && isFirst) setBusy(false);
+      }
+    };
+
     setBusy(true);
     setError(null);
     setQuote(null);
     setFin(null);
     (async () => {
+      await loadQuote(true);
       try {
-        const q = await fetchQuote(symbol);
-        if (!alive) return;
-        setQuote(q);
-        try {
-          const f = await fetchFundamentals(symbol);
-          if (alive) setFin(f);
-        } catch {
-          if (alive) setFin({});
-        }
-      } catch (err) {
-        if (alive) setError(String(err?.message ?? err));
-      } finally {
-        if (alive) setBusy(false);
+        const f = await fetchFundamentals(symbol);
+        if (alive) setFin(f);
+      } catch {
+        if (alive) setFin({});
       }
     })();
+
+    const timer = setInterval(() => loadQuote(false), 60_000);
     return () => {
       alive = false;
+      clearInterval(timer);
     };
-  }, [symbol]);
+  }, [symbol, reloadTick]);
 
   const select = (item) => {
+    if (item.symbol === symbol) setReloadTick((t) => t + 1); // 재클릭 = 수동 새로고침
     setSymbol(item.symbol);
     setSymbolName(item.name);
     storage.set("symbol", item.symbol);
@@ -139,7 +151,9 @@ function StocksPlugin({ storage }) {
               <span className="stk-change" style={{ color }}>
                 {fmtPct(quote.changePct)}
               </span>
-              <span className="stk-symbol">{quote.currency} · 3개월</span>
+              <span className="stk-symbol">
+                {quote.currency} · 3개월 · {fmtMarketTime(quote.marketTime)}
+              </span>
             </div>
             <div className="stk-chart">
               <Chart points={quote.points} prevClose={quote.prevClose} color={color} />

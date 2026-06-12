@@ -38,6 +38,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mkt-time {
+  font-size: 11px;
+  color: #5b6270;
+}
+
 .mkt-ranges {
   display: flex;
   gap: 4px;

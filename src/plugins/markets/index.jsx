@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SYMBOL_GROUPS, ALL_SYMBOLS, symbolName } from "./symbols";
-import { fetchChart, fmtPrice, fmtPct, trendColor } from "./api";
+import { fetchChart, fmtPrice, fmtPct, trendColor, fmtMarketTime } from "./api";
 import Chart from "./Chart";
 import "./markets.css";
 
@@ -96,6 +96,7 @@ function MarketsPlugin({ storage }) {
           <span className="mkt-change" style={{ color }}>
             {fmtPct(chart?.changePct)}
           </span>
+          <span className="mkt-time">{fmtMarketTime(chart?.marketTime)}</span>
         </div>
         <div className="mkt-ranges">
           {RANGES.map((r) => (
