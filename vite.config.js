@@ -53,6 +53,13 @@ export default defineConfig(async () => ({
         secure: false,
         rewrite: (path) => path.replace(/^\/openai/, ""),
       },
+      // 한국 실시간 시세: 네이버 폴링 API (markets/stocks의 KR 시세 보정용)
+      "/npoll": {
+        target: "https://polling.finance.naver.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/npoll/, ""),
+      },
       // 뉴스 플러그인: Google News RSS
       "/gnews": {
         target: "https://news.google.com",

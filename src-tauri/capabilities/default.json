@@ -24,7 +24,8 @@
         { "url": "https://api.anthropic.com/*" },
         { "url": "https://api.dictionaryapi.dev/*" },
         { "url": "https://api.openai.com/*" },
-        { "url": "https://news.google.com/*" }
+        { "url": "https://news.google.com/*" },
+        { "url": "https://polling.finance.naver.com/*" }
       ]
     }
   ]

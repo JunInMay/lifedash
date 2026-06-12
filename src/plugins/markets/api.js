@@ -20,6 +20,60 @@ async function yahooGet(path) {
   return res.json();
 }
 
+// ---- 네이버 실시간 시세 (한국 전용) ----
+// Yahoo의 KRX 데이터는 ~20분 지연이지만, 네이버 폴링 API는 무지연(delayTime: 0)이다.
+// ac.stock.naver.com 등 다른 네이버 증권 호스트는 회사망에서 차단되지만
+// polling.finance.naver.com은 차단되지 않는 것을 실측 확인 (2026-06-12).
+// 실패 시 조용히 null을 반환해 Yahoo 값으로 폴백한다.
+const NAVER_BASE = "https://polling.finance.naver.com";
+const NAVER_INDEX = { "^KS11": "KOSPI", "^KQ11": "KOSDAQ", "^KS200": "KPI200" };
+
+const parseNum = (s) => {
+  if (s == null) return null;
+  const n = Number(String(s).replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
+
+function naverPathFor(symbol) {
+  if (NAVER_INDEX[symbol]) return `/api/realtime/domestic/index/${NAVER_INDEX[symbol]}`;
+  if (/^\d{6}\.(KS|KQ)$/.test(symbol)) return `/api/realtime/domestic/stock/${symbol.slice(0, 6)}`;
+  return null;
+}
+
+/** 한국 지수/종목의 실시간 시세. 해당 없거나 실패하면 null. */
+export async function fetchNaverRealtime(symbol) {
+  const path = naverPathFor(symbol);
+  if (!path) return null;
+  try {
+    let json;
+    if (isTauri()) {
+      try {
+        const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
+        const res = await httpFetch(NAVER_BASE + path, { method: "GET" });
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+    }
+    if (!json) {
+      const res = await fetch("/npoll" + path);
+      if (!res.ok) return null;
+      json = await res.json();
+    }
+    const d = json?.datas?.[0];
+    const price = parseNum(d?.closePrice);
+    if (price == null) return null;
+    return {
+      price,
+      changePct: parseNum(d.fluctuationsRatio),
+      volume: parseNum(d.accumulatedTradingVolume),
+      marketTime: Math.floor(Date.now() / 1000), // 무지연이므로 현재 시각
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function requestChart(symbol, range, interval) {
   const path =
     `/v8/finance/chart/${encodeURIComponent(symbol)}` +
@@ -72,6 +126,14 @@ export async function fetchChart(symbol, range = "1d", interval = "5m") {
       wide.points = wide.points.filter((p) => day(p.t) === lastDay);
       data = wide;
     }
+  }
+
+  // 한국 지수/종목: 네이버 실시간으로 헤더 시세 보정 (차트 곡선은 Yahoo 지연 데이터 유지)
+  const rt = await fetchNaverRealtime(symbol);
+  if (rt) {
+    data.price = rt.price;
+    if (rt.changePct != null) data.changePct = rt.changePct;
+    data.marketTime = rt.marketTime;
   }
   return data;
 }

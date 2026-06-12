@@ -152,7 +152,9 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - 시세/차트: v8 chart `range=3mo&interval=1d`. ⚠️ 이 범위에서 `meta.chartPreviousClose`는 전일이 아니라 **3개월 전 종가** — 일간 등락률은 마지막 두 일봉으로 계산해야 함 (실제로 +57.89%로 잘못 나왔던 버그 수정함).
 - markets 플러그인의 `Chart.jsx`/`fmtPrice`/`trendColor`를 import해 재사용 (플러그인 간 의존 첫 사례).
 - Yahoo는 과도 호출 시 429를 줌 — 검색은 400ms 디바운스 적용.
-- **Yahoo KRX 데이터는 ~20분 지연 + 개장 직후 공백** (실측: 09:10에 ^KS11 1d 응답 캔들 0개, 삼성전자 regularMarketTime=전일 15:30). 대응: ① markets의 1d 차트는 캔들이 없으면 2d로 재요청해 마지막 거래일 세션을 잘라 표시, ② 두 플러그인 모두 시세 기준 시각(`meta.regularMarketTime`)을 화면에 표시해 지연을 드러냄, ③ stocks는 60초 자동 갱신 + 같은 종목 재클릭 시 강제 재조회(reloadTick).
+- **Yahoo KRX 데이터는 ~20분 지연 + 개장 직후 공백** (실측: 09:10에 ^KS11 1d 응답 캔들 0개, 삼성전자 regularMarketTime=전일 15:30). 대응: ① markets의 1d 차트는 캔들이 없으면 2d로 재요청해 마지막 거래일 세션을 잘라 표시, ② 두 플러그인 모두 시세 기준 시각을 화면에 표시, ③ stocks는 60초 자동 갱신 + 같은 종목 재클릭 시 강제 재조회(reloadTick).
+- **한국 시세는 네이버 폴링 API로 실시간 보정** (`markets/api.js`의 `fetchNaverRealtime`): `polling.finance.naver.com/api/realtime/domestic/{index|stock}/{code}` — **무지연(delayTime: 0), 키 불필요**. 한국 지수(^KS11→KOSPI, ^KQ11→KOSDAQ, ^KS200→KPI200)와 6자리 코드 종목(.KS/.KQ)의 가격/등락률/거래량을 덮어쓰고, 차트 곡선은 Yahoo(지연) 유지. 실패 시 조용히 Yahoo 값 폴백. 응답 숫자는 콤마 문자열이라 파싱 필요.
+  - ⚠️ 주의: 회사망이 `ac.stock.naver.com` 등 네이버 증권 호스트 대부분을 차단하지만 **polling.finance.naver.com만은 차단 안 됨** (2026-06-12 실측). 언젠가 막히면 자동으로 Yahoo 지연 시세로 폴백되므로 앱은 깨지지 않음.
 
 **웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
 - **현재 정책 (상시 꽉 채움)**: 웹뷰가 카드 본문을 사실상 꽉 채운다. 단 좌/우/하단 3px(`CORNER_INSET`)만 안쪽으로 — 카드 border-radius 10px의 곡선이 직각에서 최대 ~3px 벗어나므로, 이만큼 넣으면 웹뷰의 사각 모서리가 카드의 둥근 윤곽선을 뚫고 나오지 않는다. 네이티브 웹뷰 자체를 둥글게 깎는 API는 Tauri에 없음.
@@ -212,6 +214,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
   - 원인 1: Yahoo KRX ~20분 지연 — 개장 직후 1d 차트 응답이 캔들 0개 (위 stocks 메모 참조)
   - 원인 2: stocks 플러그인에 자동 갱신이 없었음 — 종목 선택 시 1회 조회 후 영구 정체 (조회 실패 시 재시도도 없었음)
   - 수정: markets 1d→2d 폴백, stocks 60초 갱신 + 재클릭 재조회, 두 플러그인에 시세 기준 시각 표시
+- **한국 시세 실시간화**: "20분 지연이라 어쩔 수 없냐"는 사용자 피드백에 재조사 → polling.finance.naver.com이 회사망에서 유일하게 차단 안 된 네이버 증권 호스트임을 발견, 한국 지수/종목 시세를 네이버 실시간으로 보정 (위 메모 참조). 검증: 코스피 8,413(+8.36%)·삼성전자 336,000(+12.37%) 실시간 표시, Yahoo만 쓸 때는 어제 종가(7,764/299,000)였음. 미국 종목은 Yahoo 경로 그대로.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

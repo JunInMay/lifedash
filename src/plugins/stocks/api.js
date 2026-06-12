@@ -9,6 +9,7 @@
 // /v1/test/getcrumb)으로의 전환을 검토할 것.
 
 import { hasHangul, searchKrSymbols } from "./krSymbols";
+import { fetchNaverRealtime } from "../markets/api";
 
 const BASE = "https://query1.finance.yahoo.com";
 
@@ -72,7 +73,7 @@ export async function fetchQuote(symbol) {
   const prevClose = points.length >= 2 ? points.at(-2).v : meta.chartPreviousClose ?? null;
   const lastVolume = [...volumes].reverse().find((v) => v != null) ?? null;
 
-  return {
+  const quote = {
     symbol,
     name: meta.shortName ?? meta.longName ?? symbol,
     currency: meta.currency ?? "USD",
@@ -83,11 +84,19 @@ export async function fetchQuote(symbol) {
     high52: meta.fiftyTwoWeekHigh ?? null,
     low52: meta.fiftyTwoWeekLow ?? null,
     points,
-    // 시세 기준 시각. ⚠️ Yahoo의 KRX 데이터는 ~20분 지연이라 개장 직후엔
-    // 전일 종가/전일 시각이 그대로 온다 (실측 확인). 화면에 기준 시각을 표시해
-    // 사용자가 지연 여부를 알 수 있게 한다.
+    // 시세 기준 시각. Yahoo의 KRX 데이터는 ~20분 지연이라 아래에서 네이버 실시간으로 보정.
     marketTime: meta.regularMarketTime ?? null,
   };
+
+  // 한국 종목: 네이버 실시간(무지연)으로 가격/등락률/거래량 보정. 실패 시 Yahoo 값 유지.
+  const rt = await fetchNaverRealtime(symbol);
+  if (rt) {
+    quote.price = rt.price;
+    if (rt.changePct != null) quote.changePct = rt.changePct;
+    if (rt.volume != null) quote.volume = rt.volume;
+    quote.marketTime = rt.marketTime;
+  }
+  return quote;
 }
 
 const TS_TYPES = [
