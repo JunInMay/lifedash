@@ -1,7 +1,7 @@
 // lifedash-fable Electron 메인 프로세스.
 // Tauri에서 마이그레이션 (MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
 // DOM에 합성되어 z-index/클리핑이 일반 카드처럼 동작한다는 것 (PoC 검증됨).
-const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
@@ -98,15 +98,19 @@ function runSmokeTest(win) {
   };
   setTimeout(() => fail("타임아웃(30s)"), 30_000);
 
-  win.webContents.on("console-message", (_e, _level, message) => {
-    console.log(`[renderer] ${message}`);
+  win.webContents.on("console-message", (e) => {
+    console.log(`[renderer] ${e.message}`);
   });
   win.webContents.on("did-fail-load", (_e, code, desc) => fail(`페이지 로드 실패 ${code} ${desc}`));
 
   win.webContents.on("did-finish-load", async () => {
     try {
       const result = await win.webContents.executeJavaScript(`(async () => {
-        const out = { bridge: !!window.lifedash, board: !!document.querySelector(".board") };
+        const out = {
+          bridge: !!window.lifedash,
+          board: !!document.querySelector(".board"),
+          ua: navigator.userAgent,
+        };
         if (window.lifedash) {
           const res = await window.lifedash.netFetch(
             "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d", {});
@@ -126,6 +130,18 @@ function runSmokeTest(win) {
     }
   });
 }
+
+// OS 기본 메뉴바(File/Edit/...) 제거 — 추후 앱 내 설정 섹션으로 대체 예정.
+// 주의: 메뉴의 기본 단축키(Ctrl+R 새로고침, F12 devtools)도 함께 사라진다.
+// dev에서는 electron:dev가 detached devtools를 자동으로 열어주므로 지장 없음.
+Menu.setApplicationMenu(null);
+
+// User-Agent에서 앱/Electron 토큰 제거.
+// teams.microsoft.com 등이 UA 스니핑으로 "미식별 브라우저 → 클래식(퇴역) Teams"로
+// 보내는 문제 방지 — 순수 Chrome UA로 보이게 한다 (webview 세션에도 적용됨).
+app.userAgentFallback = app.userAgentFallback
+  .replace(new RegExp(`\\s${app.getName()}/\\S+`), "")
+  .replace(/\sElectron\/\S+/, "");
 
 app.whenReady().then(() => {
   protocol.handle("media", (req) => {

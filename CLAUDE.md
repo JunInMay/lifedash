@@ -35,7 +35,7 @@
 5. `src-tauri/target`(~2.7GB)은 레거시 cargo 캐시 — Tauri로 돌아갈 일 없다고 확정되면 지워도 됨.
 
 ## 기술 스택
-- **Electron 31** — 데스크탑 셸 (2026-06-12 Tauri v2에서 마이그레이션). 진입점 `electron/main.cjs` + `electron/preload.cjs`
+- **Electron 42** — 데스크탑 셸 (2026-06-12 Tauri v2에서 마이그레이션, 31→42 즉시 업그레이드). 진입점 `electron/main.cjs` + `electron/preload.cjs`
   - 마이그레이션 사유: Tauri child webview는 OS 네이티브 표면이라 드로어/카드가 절대 못 덮음. Electron `<webview>` 태그는 **DOM에 합성**되어 z-index/클리핑이 일반 콘텐츠처럼 동작 (PoC: `electron-poc/`, MIGRATION.MD)
 - **React 19** — 프론트엔드 (Tauri 시절 코드 그대로 재사용, Tauri API 호출부만 브리지로 치환)
 - **Vite 7** — 빌드 도구 (`base: "./"` — file:// 로드 대응)
@@ -239,6 +239,10 @@ src-tauri/              ← 레거시 Tauri 셸 (더 이상 빌드 대상 아님
 - **함정 회피**: 메인 프로세스에서 Node fetch 대신 **Electron `net.fetch`** 사용 — Chromium 스택이라 OS 인증서를 신뢰해 사내망 SSL 인터셉션에서도 동작 (Node fetch였으면 Tauri 때 rustls-tls-native-roots 전환과 같은 문제 재발).
 - **검증**: `npm run build` ✅(Tauri 청크 사라지고 단일 번들), 스모크 테스트 PASS(브리지/보드/IPC fetch, file:// production 경로), 브라우저 프리뷰에서 15종 플러그인 등록·시세 로드·새 폴백 문구 확인. **webview 카드 겹침/드로어 커버는 사용자가 `npm run electron:dev`로 최종 확인 필요.**
 - **보존**: `src-tauri/`(레거시), `electron-poc/`(PoC), `@tauri-apps/*` JS deps는 devDependencies로 이동.
+- **후속 수정 (사용자 실기기 확인 후)**:
+  - OS 메뉴바(File/Edit/...) 제거 — `Menu.setApplicationMenu(null)`. 추후 앱 내 설정 섹션으로 대체 예정. 부작용: Ctrl+R/F12 기본 단축키도 사라짐(dev는 detached devtools 자동 오픈으로 커버)
+  - **Teams 클래식 퇴역 화면 문제**: Tauri의 WebView2(OS 최신 Edge 엔진, 현행 UA)와 달리 Electron 31은 Chromium 126(2년 전) + UA에 `Electron/31` 토큰 → Microsoft UA 스니핑이 퇴역한 클래식 Teams로 라우팅. **해결**: ① `app.userAgentFallback`에서 앱/Electron 토큰 제거(웹뷰 세션에도 적용), ② Electron 42로 업그레이드(Chromium 148 — UA를 속이는 게 아니라 실제 최신 엔진). 스모크에서 UA가 순수 `Chrome/148`로 나가는 것 확인
+  - 교훈: **Electron은 엔진이 앱에 박제되므로 주기적 업그레이드 필요** (Tauri/WebView2는 OS가 갱신해줬음). 웹뷰 플러그인이 "구형 브라우저" 취급받기 시작하면 electron 버전부터 확인할 것
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**
