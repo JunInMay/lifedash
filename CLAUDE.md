@@ -124,6 +124,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 | `news` | 뉴스 | 국가별(한/미/일/영/독 다중 선택) 실시간 헤드라인, 국가 간 라운드로빈 공평 배분, 5분 갱신 | Google News RSS (무키) |
 | `stocks` | 종목 검색 | 미국·한국 주식/ETF 검색, 일간 등락·3개월 차트·재무지표·즐겨찾기 | Yahoo Finance (무키, 아래 메모 필독) |
 | `videoplayer` | 동영상 재생기 | 여러 경로의 로컬 동영상을 모아 재생, 우측 목록·호버 컨트롤·카드 내 최대화 | - (로컬 파일, 데스크탑 전용) |
+| `browser` | 웹뷰 | 사용자가 입력한 임의 URL을 child webview로 카드 안에 표시, 주소창에서 변경 가능 | - (데스크탑 전용) |
 
 ### 플러그인별 구현 메모
 
@@ -156,10 +157,12 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
 - **한국 시세는 네이버 폴링 API로 실시간 보정** (`markets/api.js`의 `fetchNaverRealtime`): `polling.finance.naver.com/api/realtime/domestic/{index|stock}/{code}` — **무지연(delayTime: 0), 키 불필요**. 한국 지수(^KS11→KOSPI, ^KQ11→KOSDAQ, ^KS200→KPI200)와 6자리 코드 종목(.KS/.KQ)의 가격/등락률/거래량을 덮어쓰고, 차트 곡선은 Yahoo(지연) 유지. 실패 시 조용히 Yahoo 값 폴백. 응답 숫자는 콤마 문자열이라 파싱 필요.
   - ⚠️ 주의: 회사망이 `ac.stock.naver.com` 등 네이버 증권 호스트 대부분을 차단하지만 **polling.finance.naver.com만은 차단 안 됨** (2026-06-12 실측). 언젠가 막히면 자동으로 Yahoo 지연 시세로 폴백되므로 앱은 깨지지 않음.
 
-**웹뷰 공통 (youtube/teams)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
+**웹뷰 공통 (youtube/teams/browser)** — 추적 로직은 `src/core/useChildWebview.js` 훅으로 통합. 새 웹뷰 플러그인은 이 훅 + frame 마크업만 복제하면 된다.
 - **현재 정책 (상시 꽉 채움)**: 웹뷰가 카드 본문을 사실상 꽉 채운다. 단 좌/우/하단 3px(`CORNER_INSET`)만 안쪽으로 — 카드 border-radius 10px의 곡선이 직각에서 최대 ~3px 벗어나므로, 이만큼 넣으면 웹뷰의 사각 모서리가 카드의 둥근 윤곽선을 뚫고 나오지 않는다. 네이티브 웹뷰 자체를 둥글게 깎는 API는 Tauri에 없음.
 - **알려진 제약**: 네이티브 웹뷰가 덮은 픽셀의 마우스 이벤트는 HTML 핸들에 절대 도달하지 않는다(z-index 무관, OS 표면이 가로챔). 따라서 웹뷰 플러그인의 하단(se/sw) 핸들은 동작하지 않고, **리사이즈는 HTML 헤더 위에 있는 상단(ne/nw) 핸들로 한다**. 일반 플러그인은 4모서리 전부 동작.
 - 이동(드래그)은 헤더가 HTML이라 항상 정상.
+
+**browser** — youtube/teams처럼 도메인을 고정하지 않고, 사용자가 입력한 임의 URL을 표시하는 범용 webview 플러그인 ("작게 틀어놓고 보는" 용도, 예: 스포츠 중계 사이트). `useChildWebview`를 그대로 쓰되, `.webview-host` 대신 `.browser-host`를 두고 그 위에 HTML 주소창(`.browser-bar`, input+이동 버튼)을 별도 행으로 배치 — 주소창은 항상 클릭/입력 가능하고 webview는 그 아래 영역만 추적한다. URL은 인스턴스 storage(`url`)에 저장되어 재방문 시 마지막 URL 유지. `http(s)://` 없이 입력하면 `https://`를 자동 보정. 카드 리사이즈는 webview 영역(`.browser-host`)이 상단 헤더 바로 아래부터 시작하므로 다른 웹뷰 플러그인과 달리 **주소창이 있는 상단도 HTML**이라 ne/nw 핸들 동작에 영향 없음.
 
 **videoplayer** — `<video>` 엘리먼트 기반(웹뷰 아님 — youtube/teams의 z-order/리사이즈 제약 없음). 좌측 video + 우측 동영상 목록(추가/제거), 영상에 호버하면 중앙에 이전/재생-정지/다음 오버레이 + 우하단에 카드 내 최대화(목록 숨김) 버튼이 나타남. 동영상은 폴더 스캔이 아니라 **파일 다이얼로그로 개별 경로를 모아** storage에 저장(`{path, name}[]`). 마운트/목록 변경 시 `@tauri-apps/plugin-fs`의 `exists()`로 각 경로 생존 확인 → 없으면 목록에 빨간 글씨 + 재생 시 "파일을 찾을 수 없습니다" 표시. `convertFileSrc`(asset 프로토콜)로 로컬 경로를 `<video src>`에 연결. 신규 인프라: `tauri-plugin-fs`/`tauri-plugin-dialog` (Cargo + lib.rs 등록), capability에 `dialog:default` + `fs:allow-exists`(scope `**`), `tauri.conf.json`에 `app.security.assetProtocol: { enable: true, scope: ["**/*"] }`, tauri 의존성에 `protocol-asset` feature 추가(빠지면 `tauri dev/build`가 "allowlist mismatch" 에러). 브라우저 dev에서는 "데스크탑 전용" 안내만 표시.
 
@@ -216,6 +219,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
   - 수정: markets 1d→2d 폴백, stocks 60초 갱신 + 재클릭 재조회, 두 플러그인에 시세 기준 시각 표시
 - **한국 시세 실시간화**: "20분 지연이라 어쩔 수 없냐"는 사용자 피드백에 재조사 → polling.finance.naver.com이 회사망에서 유일하게 차단 안 된 네이버 증권 호스트임을 발견, 한국 지수/종목 시세를 네이버 실시간으로 보정 (위 메모 참조). 검증: 코스피 8,413(+8.36%)·삼성전자 336,000(+12.37%) 실시간 표시, Yahoo만 쓸 때는 어제 종가(7,764/299,000)였음. 미국 종목은 Yahoo 경로 그대로.
 - **앱 전체화면 토글 (F11)**: topbar 버튼 대신 **F11 키보드 단축키**로만 제공(사용자 요청으로 버튼 제거). `Dashboard.jsx`의 `toggleFullscreen` — Tauri 환경은 `@tauri-apps/api/window`의 `getCurrentWindow().setFullscreen()`/`isFullscreen()`, 브라우저 dev는 `document.documentElement.requestFullscreen()`/`exitFullscreen()`으로 분기(`isTauri()` 패턴). `window` keydown 리스너에서 F11을 가로채 토글. capability에 `core:window:allow-set-fullscreen`/`allow-is-fullscreen` 추가. 검증: `npm run build` ✅, `cargo check` ✅(실제 전체화면 전환은 `npm run tauri dev`에서 사용자 확인 필요).
+- **browser(웹뷰) 플러그인 추가**: 월드컵 시청 등 "작게 틀어놓고 보고 싶은 임의 사이트"를 위한 범용 webview 플러그인. youtube/teams처럼 도메인 고정이 아니라 사용자가 주소창에 입력한 URL을 표시(위 "웹뷰 공통" 섹션 참조). 추가 capability/Cargo 변경 없이 기존 webview 권한 재사용. 검증: `npm run build` ✅(304.50 kB / gzip 95.45 kB), 브라우저 프리뷰에서 `.browser-root` 렌더·기본 URL(google.com)·데스크탑 전용 폴백 문구 확인, 콘솔 에러 없음.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**
