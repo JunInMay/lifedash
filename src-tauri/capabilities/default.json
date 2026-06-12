@@ -10,6 +10,8 @@
     "core:webview:allow-webview-close",
     "core:webview:allow-set-webview-position",
     "core:webview:allow-set-webview-size",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
     "dialog:default",
     {
       "identifier": "fs:allow-exists",
