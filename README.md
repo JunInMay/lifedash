@@ -42,13 +42,14 @@ npm run electron:dev
 npm run dev
 ```
 
-## 빌드 (production 경로 실행)
+## 빌드
 
 ```powershell
-npm run electron:start
+npm run electron:start   # production 경로로 바로 실행 (vite build + file:// 로드)
+npm run dist             # 배포 빌드 → release/에 설치본(Setup) + 포터블 exe
 ```
 
-> 2026-06-12 Tauri → Electron 마이그레이션 완료 (배경: [MIGRATION.MD](./MIGRATION.MD)). `src-tauri/`는 레거시 보존.
+> 2026-06-12 Tauri → Electron 마이그레이션 완료 (배경: [MIGRATION.MD](./MIGRATION.MD)). `src-tauri/`는 git 히스토리에만 보존.
 
 ## 참고
 

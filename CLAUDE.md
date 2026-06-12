@@ -18,7 +18,7 @@
 | 사용자 | 한국어 사용. 간결한 보고 선호. 위임 후 결과만 확인하는 스타일 |
 | git | 로컬 repo만 존재 (원격 없음). master 브랜치 단일 |
 | 빌드 상태 | `npm run build` ✅ / Electron 스모크(`LIFEDASH_SMOKE=1`) ✅ / 데스크탑 앱은 `npm run electron:dev` |
-| 셸 런타임 | **Electron 31** (2026-06-12 Tauri에서 마이그레이션 — 사유는 MIGRATION.MD와 작업 이력 참조). `src-tauri/`는 레거시로 보존만 |
+| 셸 런타임 | **Electron 42** (2026-06-12 Tauri에서 마이그레이션 — 사유는 MIGRATION.MD와 작업 이력 참조). `src-tauri/`는 git 히스토리로만 남기고 워킹트리에서 삭제됨 (복구: `git checkout 624f315 -- src-tauri`) |
 
 ### ⚠️ 환경 특이사항 (모르면 헤맨다)
 1. **사내망 SSL 인터셉션**: 이 PC는 회사망이라 HTTPS가 자체 서명 인증서로 가로채진다.
@@ -32,7 +32,7 @@
    - 검증이 끝나면 반드시 dev 서버를 종료하고, 고아 node 프로세스가 포트를 물고 있지 않은지 `Get-NetTCPConnection -LocalPort <port> -State Listen`으로 확인
 3. **localStorage는 origin별**: 1430(사용자 실사용), 1435(검증용), 빌드 앱(file://)은 각각 별도 저장소다. 1435에서 테스트로 만든 레이아웃은 사용자 화면에 안 나타난다.
 4. Windows + PowerShell 환경. git이 CRLF 경고를 내지만 무해.
-5. `src-tauri/target`(~2.7GB)은 레거시 cargo 캐시 — Tauri로 돌아갈 일 없다고 확정되면 지워도 됨.
+5. **회사 엔드포인트 보안이 압축 해제 직후의 실행파일 폴더 rename을 막는다** — electron-builder의 EPERM 에러 원인 (배포 빌드 섹션의 `electronDist` 우회 참조).
 
 ## 기술 스택
 - **Electron 42** — 데스크탑 셸 (2026-06-12 Tauri v2에서 마이그레이션, 31→42 즉시 업그레이드). 진입점 `electron/main.cjs` + `electron/preload.cjs`
@@ -64,9 +64,11 @@ src/
       index.jsx         ← 플러그인 컴포넌트 (default export)
       manifest.json     ← 메타데이터
       *.js / *.css      ← 부속 파일 자유 (registry는 index.jsx/manifest.json만 본다)
-electron-poc/           ← 마이그레이션 검증용 PoC (참고용 보존)
-src-tauri/              ← 레거시 Tauri 셸 (더 이상 빌드 대상 아님, 참고용 보존)
+electron-poc/           ← 마이그레이션 검증용 PoC (소스만 보존, node_modules 제거됨)
+build/                  ← 패키징 리소스 (icon.ico — Tauri 시절 아이콘 재사용)
+release/                ← npm run dist 출력 (gitignore)
 ```
+> `src-tauri/`는 2026-06-12 워킹트리에서 삭제 (git 히스토리에 보존, 마지막 상태: 커밋 `624f315`)
 
 ## 플러그인 시스템
 
@@ -252,7 +254,7 @@ src-tauri/              ← 레거시 Tauri 셸 (더 이상 빌드 대상 아님
 
 ## 알려진 이슈 / 리스크
 - [x] ~~youtube z-order: 웹뷰가 드로어/다른 카드를 가림~~ → **Electron 마이그레이션으로 근본 해결** (`<webview>`는 DOM 합성)
-- [ ] **Electron 패키징 미구성**: electron-builder 등 배포 파이프라인은 아직 없음 (dev 실행만 가능). 필요 시 electron-builder + NSIS 추천
+- [x] ~~Electron 패키징 미구성~~ → electron-builder 구성 완료 (`npm run dist`, 위 배포 빌드 섹션 참조)
 - [ ] **CSP 미설정**: dev 콘솔에 Electron 보안 경고 출력 (Tauri 시절에도 csp null). 패키징 전 index.html에 CSP 메타 추가 검토
 - [ ] **AI 번역 실호출 미검증**: 키가 없어 에러 경로까지만 검증됨. 첫 사용 시 에러 나면 화면의 에러 메시지 확인
 - [ ] **구글 gtx 비공식 엔드포인트**: translator/dictionary(영한)가 의존. 차단되면 DeepL Free 등으로 교체 (`engines.js` 추상화 지점 있음)
@@ -277,7 +279,15 @@ npm install
 npm run electron:dev        # 데스크탑 앱 (vite 1430 + electron 동시 기동)
 npm run electron:start      # production 경로 (vite build 후 file://로 로드)
 npm run dev -- --port 1435  # AI/검증용 브라우저 프리뷰
+npm run dist                # 배포 빌드 → release/ 에 Setup(NSIS 설치본) + 포터블 exe
 ```
+
+### 배포 빌드 (electron-builder)
+- `npm run dist` → `release/lifedash-fable Setup 0.1.0.exe`(설치본) + `lifedash-fable 0.1.0.exe`(포터블 단일 실행파일, ~97MB)
+- 설정은 package.json의 `"build"` 필드. 아이콘은 `build/icon.ico`(Tauri 시절 아이콘 재사용)
+- ⚠️ **이 PC 함정**: electron-builder가 Electron을 자체 다운로드/압축해제하면 회사 엔드포인트 보안이 폴더 rename을 막아 `EPERM ... win-unpacked.tmp` 에러가 남 (2회 재현). **`"electronDist": "node_modules/electron/dist"`** 설정으로 이미 설치된 바이너리를 복사해 쓰게 해 우회 (이 설정 지우지 말 것)
+- 코드 서명 없음(개인용). 패키징 검증: `LIFEDASH_SMOKE=1`로 `release/win-unpacked/lifedash-fable.exe` 실행 → PASS 확인됨
+- electron 버전을 올리면 `electronDist` 덕분에 별도 작업 없이 새 버전으로 패키징됨 (npm install만 다시)
 
 ## 플러그인 런타임 설계 기준
 
