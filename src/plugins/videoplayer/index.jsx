@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createSharedStorage } from "../../core/storage";
+import { isDesktop } from "../../core/desktop";
 import "./videoplayer.css";
 
 // 동영상 목록은 카드를 닫았다 다시 추가해도 유지되어야 하는 "라이브러리"이므로
 // 인스턴스별 storage가 아니라 플러그인 공유 storage에 저장한다.
 const library = createSharedStorage("videoplayer");
 
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
 const VIDEO_EXTENSIONS = ["mp4", "webm", "mkv", "mov", "avi", "m4v"];
 
 function fileName(path) {
@@ -22,24 +22,20 @@ function VideoPlayerPlugin() {
   const [srcMap, setSrcMap] = useState({});
   const videoRef = useRef(null);
 
-  // 마운트/목록 변경 시 각 동영상의 실제 존재 여부 확인 + asset URL 변환
+  // 마운트/목록 변경 시 각 동영상의 실제 존재 여부 확인 + media:// URL 변환
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!isDesktop()) return;
     let alive = true;
     (async () => {
-      const [{ exists }, { convertFileSrc }] = await Promise.all([
-        import("@tauri-apps/plugin-fs"),
-        import("@tauri-apps/api/core"),
-      ]);
       const nextMissing = {};
       const nextSrc = {};
       for (const v of videos) {
         try {
-          nextMissing[v.path] = !(await exists(v.path));
+          nextMissing[v.path] = !(await window.lifedash.fileExists(v.path));
         } catch {
           nextMissing[v.path] = true;
         }
-        nextSrc[v.path] = convertFileSrc(v.path);
+        nextSrc[v.path] = window.lifedash.mediaSrc(v.path);
       }
       if (alive) {
         setMissing(nextMissing);
@@ -57,12 +53,8 @@ function VideoPlayerPlugin() {
   };
 
   const addVideos = async () => {
-    if (!isTauri()) return;
-    const { open } = await import("@tauri-apps/plugin-dialog");
-    const selected = await open({
-      multiple: true,
-      filters: [{ name: "동영상", extensions: VIDEO_EXTENSIONS }],
-    });
+    if (!isDesktop()) return;
+    const selected = await window.lifedash.pickVideos(VIDEO_EXTENSIONS);
     if (!selected) return;
     const paths = Array.isArray(selected) ? selected : [selected];
     const existing = new Set(videos.map((v) => v.path));
@@ -98,7 +90,7 @@ function VideoPlayerPlugin() {
     }
   };
 
-  if (!isTauri()) {
+  if (!isDesktop()) {
     return (
       <div className="vp-root">
         <div className="vp-stage">
@@ -107,7 +99,7 @@ function VideoPlayerPlugin() {
             <br />
             동영상 재생기는 데스크탑 앱에서 동작합니다.
             <br />
-            <code>npm run tauri dev</code>로 실행해 주세요.
+            <code>npm run electron:dev</code>로 실행해 주세요.
           </div>
         </div>
       </div>

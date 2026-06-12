@@ -137,15 +137,26 @@ button {
   z-index: 10;
 }
 
-/* ---- child webview 임베드 (youtube, teams) ---- */
-/* 웹뷰는 .webview-host의 rect를 추적하되, 평소엔 카드를 꽉 채우고
-   커서가 가장자리에 오면 동적으로 수축해 핸들을 노출한다 (useChildWebview 참조). */
+/* ---- <webview> 임베드 (youtube, teams, browser — Electron) ---- */
+/* Electron <webview>는 DOM 요소라 z-index/overflow 클리핑이 일반 카드처럼 동작한다 */
 
-.webview-frame {
+.webview-fill {
   height: 100%;
+  display: flex;
 }
 
-.webview-host {
+.webview-el {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #15171c;
+  /* <webview>는 기본 inline이라 flex 컨테이너 안에서 명시 필요 */
+  display: flex;
+}
+
+.webview-fallback {
+  flex: 1;
   height: 100%;
   display: flex;
   align-items: center;
@@ -154,15 +165,7 @@ button {
   color: #5b6270;
   font-size: 13px;
   line-height: 1.6;
-  border-radius: 4px;
   background: #15171c;
-}
-
-.webview-error {
-  color: #f87171;
-  font-size: 12px;
-  word-break: break-all;
-  padding: 8px;
 }
 
 /* ---- 플러그인 드로어 ---- */

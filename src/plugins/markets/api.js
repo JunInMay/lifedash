@@ -1,21 +1,12 @@
 // Yahoo Finance v8 chart API 호출 래퍼.
-// - Tauri 앱: tauri-plugin-http로 직접 호출 (CORS 없음)
+// - Electron 앱: 메인 프로세스 fetch (CORS 없음, desktop.js 브리지)
 // - 브라우저(npm run dev): vite 프록시 "/yahoo" 경유
+import { isDesktop, desktopFetch } from "../../core/desktop";
+
 const BASE = "https://query1.finance.yahoo.com";
 
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
-
 async function yahooGet(path) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      const res = await httpFetch(BASE + path, { method: "GET" });
-      return await res.json();
-    } catch {
-      // tauri dev에서는 페이지가 vite 서버에서 서빙되므로 프록시 fallback 가능
-    }
-  }
-  const res = await fetch("/yahoo" + path);
+  const res = isDesktop() ? await desktopFetch(BASE + path) : await fetch("/yahoo" + path);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -45,21 +36,11 @@ export async function fetchNaverRealtime(symbol) {
   const path = naverPathFor(symbol);
   if (!path) return null;
   try {
-    let json;
-    if (isTauri()) {
-      try {
-        const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-        const res = await httpFetch(NAVER_BASE + path, { method: "GET" });
-        json = await res.json();
-      } catch {
-        json = null;
-      }
-    }
-    if (!json) {
-      const res = await fetch("/npoll" + path);
-      if (!res.ok) return null;
-      json = await res.json();
-    }
+    const res = isDesktop()
+      ? await desktopFetch(NAVER_BASE + path)
+      : await fetch("/npoll" + path);
+    if (!res.ok) return null;
+    const json = await res.json();
     const d = json?.datas?.[0];
     const price = parseNum(d?.closePrice);
     if (price == null) return null;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../../core/desktop";
 
 function normalize(url) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
@@ -22,13 +22,7 @@ function LinksPlugin({ storage }) {
     setUrl("");
   };
 
-  const open = async (link) => {
-    try {
-      await openUrl(link.url); // Tauri 환경: OS 기본 브라우저
-    } catch {
-      window.open(link.url, "_blank"); // 순수 브라우저 환경 fallback
-    }
-  };
+  const open = (link) => openExternal(link.url); // 데스크탑: 기본 브라우저, dev: 새 탭
 
   return (
     <div className="widget-pad" style={{ gap: 8 }}>

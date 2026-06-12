@@ -10,22 +10,12 @@
 
 import { hasHangul, searchKrSymbols } from "./krSymbols";
 import { fetchNaverRealtime } from "../markets/api";
+import { isDesktop, desktopFetch } from "../../core/desktop";
 
 const BASE = "https://query1.finance.yahoo.com";
 
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
-
 async function yahooGet(path) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      const res = await httpFetch(BASE + path, { method: "GET" });
-      return await res.json();
-    } catch {
-      // tauri dev에서는 vite 프록시로 fallback 가능
-    }
-  }
-  const res = await fetch("/yahoo" + path);
+  const res = isDesktop() ? await desktopFetch(BASE + path) : await fetch("/yahoo" + path);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }

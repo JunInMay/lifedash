@@ -3,8 +3,7 @@ import PluginCard from "./PluginCard";
 import PluginDrawer from "./PluginDrawer";
 import { getPlugin } from "./PluginRegistry";
 import { loadLayout, saveLayout, clearPluginStorage } from "./storage";
-
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+import { toggleFullscreen } from "./desktop";
 
 // 첫 실행 시 기본 배치
 const defaultInstances = [
@@ -17,22 +16,7 @@ function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const boardRef = useRef(null);
 
-  const toggleFullscreen = async () => {
-    if (isTauri()) {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const win = getCurrentWindow();
-      const next = !(await win.isFullscreen());
-      await win.setFullscreen(next);
-      return;
-    }
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
-    }
-  };
-
-  // F11로 전체화면 토글
+  // F11로 전체화면 토글 (Electron: 창 전체화면 / 브라우저: document fullscreen)
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "F11") {

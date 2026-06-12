@@ -1,9 +1,8 @@
 // 사전 조회 API.
 // - 영영(enen): Free Dictionary API (dictionaryapi.dev) — 키 불필요
 // - 영한(enko): 구글 번역 비공식 엔드포인트의 사전 모드(dt=bd) — 키 불필요
-// 네트워크 경로는 다른 플러그인과 동일: Tauri는 plugin-http, 브라우저 dev는 vite 프록시.
-
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+// 네트워크 경로는 다른 플러그인과 동일: Electron은 메인 프로세스 fetch, 브라우저 dev는 vite 프록시.
+import { isDesktop, desktopFetch } from "../../core/desktop";
 
 export const MODES = [
   { id: "enen", label: "영영" },
@@ -29,23 +28,12 @@ export function posLabel(pos) {
   return POS_KO[String(pos).toLowerCase()] ?? pos;
 }
 
-async function request(url) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      return await httpFetch(url, { method: "GET" });
-    } catch {
-      // tauri dev에서는 vite 프록시 경로로 fallback 가능
-    }
-  }
-  return null;
-}
-
 /** 영영 사전: { word, phonetic, audio, meanings: [{pos, definitions: [{definition, example}], synonyms}] } */
 async function lookupEnEn(word) {
   const path = `/api/v2/entries/en/${encodeURIComponent(word)}`;
-  const res =
-    (await request(`https://api.dictionaryapi.dev${path}`)) ?? (await fetch(`/dict${path}`));
+  const res = isDesktop()
+    ? await desktopFetch(`https://api.dictionaryapi.dev${path}`)
+    : await fetch(`/dict${path}`);
   if (res.status === 404) throw new Error(`'${word}' — 단어를 찾을 수 없습니다.`);
   if (!res.ok) throw new Error(`사전 API 오류 (HTTP ${res.status})`);
   const entries = await res.json();
@@ -72,8 +60,8 @@ async function lookupEnEn(word) {
 /** 영한 사전: { word, translation, meanings: [{pos, terms}] } */
 async function lookupEnKo(word) {
   const qs = `client=gtx&sl=en&tl=ko&dt=t&dt=bd&q=${encodeURIComponent(word)}`;
-  const res = isTauri()
-    ? await request(`https://translate.googleapis.com/translate_a/single?${qs}`)
+  const res = isDesktop()
+    ? await desktopFetch(`https://translate.googleapis.com/translate_a/single?${qs}`)
     : await fetch(`/gtx/translate_a/single?${qs}`);
   if (!res.ok) throw new Error(`사전 API 오류 (HTTP ${res.status})`);
   const json = await res.json();

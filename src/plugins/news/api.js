@@ -1,7 +1,6 @@
 // Google News RSS 기반 국가별 실시간 헤드라인. (무료, 키 불필요)
-// 네트워크 경로는 다른 플러그인과 동일: Tauri는 plugin-http, 브라우저 dev는 vite 프록시 /gnews.
-
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+// 네트워크 경로는 다른 플러그인과 동일: Electron은 메인 프로세스 fetch, 브라우저 dev는 /gnews 프록시.
+import { isDesktop, desktopFetch } from "../../core/desktop";
 
 export const COUNTRIES = [
   { code: "KR", label: "한국", flag: "🇰🇷", params: "hl=ko&gl=KR&ceid=KR:ko" },
@@ -12,17 +11,9 @@ export const COUNTRIES = [
 ];
 
 async function fetchRssXml(path) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      const res = await httpFetch(`https://news.google.com${path}`, { method: "GET" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
-    } catch {
-      // tauri dev에서는 vite 프록시로 fallback 가능
-    }
-  }
-  const res = await fetch(`/gnews${path}`);
+  const res = isDesktop()
+    ? await desktopFetch(`https://news.google.com${path}`)
+    : await fetch(`/gnews${path}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.text();
 }

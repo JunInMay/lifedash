@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openExternal } from "../../core/desktop";
 import { COUNTRIES, fetchHeadlines, timeAgo } from "./api";
 import "./news.css";
 
@@ -45,13 +45,7 @@ function NewsPlugin({ storage }) {
     storage.set("countries", next);
   };
 
-  const open = async (link) => {
-    try {
-      await openUrl(link);
-    } catch {
-      window.open(link, "_blank");
-    }
-  };
+  const open = (link) => openExternal(link); // 데스크탑: 기본 브라우저, dev: 새 탭
 
   return (
     <div className="news-root">

@@ -1,9 +1,8 @@
 // 번역 엔진 추상화.
 // - google: 비공식 무료 엔드포인트 (키 불필요, 언젠가 막힐 수 있음)
 // - claude: Anthropic Messages API (사용자 API 키 필요)
-// 네트워크 경로는 markets 플러그인과 동일: Tauri는 plugin-http, 브라우저 dev는 vite 프록시.
-
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+// 네트워크 경로는 markets 플러그인과 동일: Electron은 메인 프로세스 fetch, 브라우저 dev는 vite 프록시.
+import { isDesktop, desktopFetch } from "../../core/desktop";
 
 export const LANGS = [
   { code: "auto", name: "자동 감지", en: null },
@@ -28,22 +27,16 @@ export function langName(code) {
   return LANGS.find((l) => l.code === code)?.name ?? code;
 }
 
+// CORS 가능한 API(Anthropic)는 어디서든 직접 fetch, 그 외는 데스크탑 브리지/프록시
 async function request(url, options) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      return await httpFetch(url, options);
-    } catch {
-      // tauri dev에서는 페이지가 vite 서버에서 서빙되므로 아래 브라우저 경로로 fallback
-    }
-  }
+  if (isDesktop()) return desktopFetch(url, options);
   return fetch(url, options);
 }
 
 async function googleTranslate(text, src, tgt) {
   const qs = `client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(text)}`;
-  const res = isTauri()
-    ? await request(`https://translate.googleapis.com/translate_a/single?${qs}`)
+  const res = isDesktop()
+    ? await desktopFetch(`https://translate.googleapis.com/translate_a/single?${qs}`)
     : await fetch(`/gtx/translate_a/single?${qs}`);
   if (!res.ok) throw new Error(`구글 번역 오류 (HTTP ${res.status})`);
   const json = await res.json();

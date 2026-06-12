@@ -1,9 +1,8 @@
 // AI 채팅 provider 추상화. Claude(Anthropic) / GPT(OpenAI) 지원.
 // - Claude: 브라우저 CORS 허용 헤더가 있어 어디서든 직접 호출
-// - OpenAI: 브라우저 CORS 불가 → dev는 vite 프록시 /openai, Tauri는 plugin-http
+// - OpenAI: 브라우저 CORS 불가 → dev는 vite 프록시 /openai, Electron은 메인 프로세스 fetch
 // 키/모델/시스템 프롬프트는 플러그인 인스턴스 storage에만 저장된다.
-
-const isTauri = () => typeof window !== "undefined" && !!window.__TAURI_INTERNALS__;
+import { isDesktop, desktopFetch } from "../../core/desktop";
 
 export const PROVIDERS = [
   {
@@ -32,14 +31,7 @@ export const DEFAULT_SYSTEM =
 const SEND_WINDOW = 20;
 
 async function request(url, options) {
-  if (isTauri()) {
-    try {
-      const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
-      return await httpFetch(url, options);
-    } catch {
-      // tauri dev에서는 vite 프록시 경로로 fallback 가능
-    }
-  }
+  if (isDesktop()) return desktopFetch(url, options);
   return fetch(url, options);
 }
 
@@ -83,8 +75,8 @@ async function openaiChat({ apiKey, model, system, messages }) {
       ],
     }),
   };
-  const res = isTauri()
-    ? await request(`https://api.openai.com${path}`, options)
+  const res = isDesktop()
+    ? await desktopFetch(`https://api.openai.com${path}`, options)
     : await fetch(`/openai${path}`, options);
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error?.message ?? `OpenAI API 오류 (HTTP ${res.status})`);
