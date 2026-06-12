@@ -215,7 +215,7 @@ src-tauri/              ← Rust 셸. capabilities/default.json에 권한/허용
   - 원인 2: stocks 플러그인에 자동 갱신이 없었음 — 종목 선택 시 1회 조회 후 영구 정체 (조회 실패 시 재시도도 없었음)
   - 수정: markets 1d→2d 폴백, stocks 60초 갱신 + 재클릭 재조회, 두 플러그인에 시세 기준 시각 표시
 - **한국 시세 실시간화**: "20분 지연이라 어쩔 수 없냐"는 사용자 피드백에 재조사 → polling.finance.naver.com이 회사망에서 유일하게 차단 안 된 네이버 증권 호스트임을 발견, 한국 지수/종목 시세를 네이버 실시간으로 보정 (위 메모 참조). 검증: 코스피 8,413(+8.36%)·삼성전자 336,000(+12.37%) 실시간 표시, Yahoo만 쓸 때는 어제 종가(7,764/299,000)였음. 미국 종목은 Yahoo 경로 그대로.
-- **앱 전체화면 토글 추가**: topbar에 "⛶ 전체화면" 버튼 + **F11 키보드 단축키**. `Dashboard.jsx`에서 Tauri 환경은 `@tauri-apps/api/window`의 `getCurrentWindow().setFullscreen()`/`isFullscreen()`, 브라우저 dev는 `document.documentElement.requestFullscreen()`/`exitFullscreen()`으로 분기(`isTauri()` 패턴). `fullscreenchange`/`onResized` 이벤트로 상태 동기화해 버튼 라벨이 "⛶ 창모드"로 토글됨. capability에 `core:window:allow-set-fullscreen`/`allow-is-fullscreen` 추가. 검증: `npm run build` ✅, `cargo check` ✅, 브라우저 프리뷰에서 버튼 렌더 및 클릭 시 에러 없음 확인(실제 전체화면 전환은 `npm run tauri dev`에서 사용자 확인 필요 — 브라우저 Fullscreen API는 실제 사용자 클릭 제스처가 있어야 동작).
+- **앱 전체화면 토글 (F11)**: topbar 버튼 대신 **F11 키보드 단축키**로만 제공(사용자 요청으로 버튼 제거). `Dashboard.jsx`의 `toggleFullscreen` — Tauri 환경은 `@tauri-apps/api/window`의 `getCurrentWindow().setFullscreen()`/`isFullscreen()`, 브라우저 dev는 `document.documentElement.requestFullscreen()`/`exitFullscreen()`으로 분기(`isTauri()` 패턴). `window` keydown 리스너에서 F11을 가로채 토글. capability에 `core:window:allow-set-fullscreen`/`allow-is-fullscreen` 추가. 검증: `npm run build` ✅, `cargo check` ✅(실제 전체화면 전환은 `npm run tauri dev`에서 사용자 확인 필요).
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

@@ -15,29 +15,7 @@ const defaultInstances = [
 function Dashboard() {
   const [instances, setInstances] = useState(() => loadLayout() ?? defaultInstances);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(
-    () => typeof document !== "undefined" && !!document.fullscreenElement
-  );
   const boardRef = useRef(null);
-
-  // 윈도우/브라우저 전체화면 상태 동기화 (F11 등 OS 단축키로 바뀌는 경우 포함)
-  useEffect(() => {
-    if (isTauri()) {
-      let unlisten;
-      (async () => {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        const win = getCurrentWindow();
-        setIsFullscreen(await win.isFullscreen());
-        unlisten = await win.onResized(async () => {
-          setIsFullscreen(await win.isFullscreen());
-        });
-      })();
-      return () => unlisten?.();
-    }
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
 
   const toggleFullscreen = async () => {
     if (isTauri()) {
@@ -45,7 +23,6 @@ function Dashboard() {
       const win = getCurrentWindow();
       const next = !(await win.isFullscreen());
       await win.setFullscreen(next);
-      setIsFullscreen(next);
       return;
     }
     if (!document.fullscreenElement) {
@@ -214,13 +191,6 @@ function Dashboard() {
         <div style={{ display: "flex", gap: 8 }}>
           <button className="topbar-add" title="카드를 좌상단부터 재배치" onClick={arrange}>
             ⊞ 정렬
-          </button>
-          <button
-            className="topbar-add"
-            title={isFullscreen ? "전체화면 종료" : "전체화면"}
-            onClick={toggleFullscreen}
-          >
-            {isFullscreen ? "⛶ 창모드" : "⛶ 전체화면"}
           </button>
           <button className="topbar-add" onClick={() => setDrawerOpen((o) => !o)}>
             + 플러그인
