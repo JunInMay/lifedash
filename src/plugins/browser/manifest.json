@@ -5,5 +5,5 @@
   "description": "원하는 웹사이트를 카드 안에서 — URL 직접 입력 (데스크탑 앱 전용)",
   "version": "1.0.0",
   "defaultSize": { "w": 480, "h": 360 },
-  "minSize": { "w": 320, "h": 240 }
+  "minSize": { "w": 160, "h": 120 }
 }

@@ -6,8 +6,8 @@
 
 .browser-bar {
   display: flex;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 4px;
+  padding: 4px 6px;
   flex-shrink: 0;
 }
 
