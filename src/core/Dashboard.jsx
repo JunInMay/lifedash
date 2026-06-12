@@ -55,6 +55,18 @@ function Dashboard() {
     }
   };
 
+  // F11로 전체화면 토글
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "F11") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   const update = (next) => {
     setInstances(next);
     saveLayout(next);
