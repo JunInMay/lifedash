@@ -4,7 +4,16 @@ import "./style.css";
 
 const COLOR_NAMES = { red: "빨강", green: "초록", blue: "파랑", yellow: "노랑" };
 const SIZE_OPTIONS = [8, 12, 16, 20, 24];
-const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false };
+const DIFFICULTY_OPTIONS = [
+  { id: "veryEasy", label: "매우 쉬움" },
+  { id: "easy", label: "쉬움" },
+  { id: "normal", label: "보통" },
+  { id: "hard", label: "어려움" },
+  { id: "veryHard", label: "매우 어려움" },
+];
+const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false, difficulty: "normal" };
+
+const readSettings = (storage) => ({ ...DEFAULT_SETTINGS, ...storage.get("settings", {}) });
 
 const DIR_KEYS = {
   ArrowUp: "up",
@@ -32,7 +41,7 @@ const DIAGONAL_GRADIENT = {
 };
 
 export default function RicochetRobots({ instanceId, storage, bus }) {
-  const [settings, setSettings] = useState(() => storage.get("settings", DEFAULT_SETTINGS));
+  const [settings, setSettings] = useState(() => readSettings(storage));
   const [board, setBoard] = useState(() => generateBoard(settings));
   const [initialRobots, setInitialRobots] = useState(() => board.robots.map((r) => ({ ...r })));
   const [selected, setSelected] = useState(null);
@@ -61,7 +70,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
   useEffect(() => {
     return bus.on("plugin:settings-changed", (payload) => {
       if (payload?.instanceId !== instanceId) return;
-      const next = storage.get("settings", DEFAULT_SETTINGS);
+      const next = readSettings(storage);
       setSettings(next);
       newGame(next);
     });
@@ -229,7 +238,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
 
 // 카드 헤더의 공통 ⚙ 버튼으로 열리는 설정 팝업
 export function Settings({ instanceId, storage, bus }) {
-  const [settings, setSettings] = useState(() => storage.get("settings", DEFAULT_SETTINGS));
+  const [settings, setSettings] = useState(() => readSettings(storage));
 
   const update = (patch) => {
     const next = { ...settings, ...patch };
@@ -249,6 +258,19 @@ export function Settings({ instanceId, storage, bus }) {
           {SIZE_OPTIONS.map((s) => (
             <option key={s} value={s}>
               {s} x {s}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        난이도
+        <select
+          value={settings.difficulty}
+          onChange={(e) => update({ difficulty: e.target.value })}
+        >
+          {DIFFICULTY_OPTIONS.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
             </option>
           ))}
         </select>

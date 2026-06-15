@@ -33,8 +33,47 @@ function randCell(size) {
 }
 
 const MAX_SOLVE_DEPTH = 10;
-const MAX_SOLVE_NODES = 1500;
+const DEFAULT_SOLVE_NODES = 5000;
+const LEGACY_SOLVE_NODES = 1500;
 const MAX_GEN_ATTEMPTS = 40;
+
+const DIFFICULTY_CONFIG = {
+  veryEasy: {
+    minOptimal: 0,
+    targetSamples: 1,
+    attempts: MAX_GEN_ATTEMPTS,
+    wallFactor: 1,
+    solveNodes: LEGACY_SOLVE_NODES,
+  },
+  easy: {
+    minOptimal: 4,
+    targetSamples: 4,
+    attempts: MAX_GEN_ATTEMPTS,
+    wallFactor: 1.15,
+    solveNodes: DEFAULT_SOLVE_NODES,
+  },
+  normal: {
+    minOptimal: 5,
+    targetSamples: 5,
+    attempts: 30,
+    wallFactor: 1.35,
+    solveNodes: DEFAULT_SOLVE_NODES,
+  },
+  hard: {
+    minOptimal: 6,
+    targetSamples: 6,
+    attempts: 24,
+    wallFactor: 1.6,
+    solveNodes: DEFAULT_SOLVE_NODES,
+  },
+  veryHard: {
+    minOptimal: 7,
+    targetSamples: 8,
+    attempts: 20,
+    wallFactor: 1.9,
+    solveNodes: DEFAULT_SOLVE_NODES,
+  },
+};
 
 function encodeState(positions) {
   return positions.map((p) => `${p.x},${p.y}`).join("|");
@@ -43,7 +82,7 @@ function encodeState(positions) {
 // 깊이/노드 수 제한 BFS로 "목표색 로봇이 목표 칸에 도달 가능한가"와 "최단 이동 수"를 함께 구한다.
 // 노드 수 한도는 "해가 없음"을 증명하느라 탐색이 폭발하는 것을 막기 위한 안전장치 —
 // 한도 도달 시 그냥 "이번 시도는 실패"로 보고 재생성한다
-function solveBoard(board, maxDepth = MAX_SOLVE_DEPTH, maxNodes = MAX_SOLVE_NODES) {
+function solveBoard(board, maxDepth = MAX_SOLVE_DEPTH, maxNodes = DEFAULT_SOLVE_NODES) {
   const { robots, target } = board;
   const targetIdx = robots.findIndex((r) => r.color === target.color);
   const start = robots.map((r) => ({ x: r.x, y: r.y }));
@@ -86,17 +125,49 @@ function solveBoard(board, maxDepth = MAX_SOLVE_DEPTH, maxNodes = MAX_SOLVE_NODE
 
 // optimalMoves: BFS로 구한 최단 이동 수. 풀이를 못 찾으면 null(드묾 — 이 경우 UI에서 컷 없이 진행)
 export function generateBoard(options = {}) {
-  for (let attempt = 0; attempt < MAX_GEN_ATTEMPTS; attempt++) {
+  const difficulty = DIFFICULTY_CONFIG[options.difficulty] ?? DIFFICULTY_CONFIG.normal;
+  let best = null;
+
+  for (let attempt = 0; attempt < difficulty.attempts; attempt++) {
     const board = buildBoard(options);
-    const { solvable, optimal } = solveBoard(board);
-    if (solvable) return { ...board, optimalMoves: optimal };
+    const targetSamples = buildTargetSamples(board, difficulty.targetSamples);
+    for (const target of targetSamples) {
+      const candidateBoard = { ...board, target };
+      const { solvable, optimal } = solveBoard(candidateBoard, MAX_SOLVE_DEPTH, difficulty.solveNodes);
+      if (!solvable) continue;
+      const candidate = { ...candidateBoard, optimalMoves: optimal };
+      if (optimal >= difficulty.minOptimal) return candidate;
+      if (!best || optimal > best.optimalMoves) best = candidate;
+    }
   }
-  return { ...buildBoard(options), optimalMoves: null };
+  return best ?? { ...buildBoard(options), optimalMoves: null };
+}
+
+function buildTargetSamples(board, count) {
+  const samples = [{ ...board.target }];
+  for (let i = 1; i < count; i++) {
+    samples.push(randTarget(board));
+  }
+  return samples;
+}
+
+function randTarget(board) {
+  const { size, blocked, diagonals, robots } = board;
+  let cell;
+  do {
+    cell = randCell(size);
+  } while (
+    blocked[cell.y][cell.x] ||
+    diagonals[cell.y][cell.x] ||
+    robots.some((r) => r.x === cell.x && r.y === cell.y)
+  );
+  return { ...cell, color: COLORS[Math.floor(Math.random() * COLORS.length)] };
 }
 
 function buildBoard(options = {}) {
   const { size = DEFAULT_SIZE, diagonalWalls = false } = options;
-  const wallCount = Math.round(size * size * 0.15);
+  const difficulty = DIFFICULTY_CONFIG[options.difficulty] ?? DIFFICULTY_CONFIG.normal;
+  const wallCount = Math.round(size * size * 0.15 * difficulty.wallFactor);
   const diagonalCount = diagonalWalls ? Math.round(size * size * 0.04) : 0;
 
   const walls = emptyWalls(size);
