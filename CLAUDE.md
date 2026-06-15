@@ -281,15 +281,44 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 - [x] YouTube 임베드 — child webview로 구현 완료
 
 ## 개발 환경 설정
+
+### 1. 처음 받았거나 `node_modules`가 없을 때 — 의존성 설치
+사내망 SSL 인터셉션 때문에 **electron 바이너리 다운로드 시 자체 서명 인증서를 신뢰해야** `npm install`이 성공한다.
 ```powershell
-# electron 바이너리 설치가 필요할 때만 (사내망 SSL)
 $env:NODE_EXTRA_CA_CERTS = 'C:\LF_WIDE\bin\ssl_cert\dev_napi.lfmall.co.kr_2.cer'
 npm install
+```
+- 이미 `node_modules/electron`이 설치돼 있다면(=평소 작업) 이 단계는 건너뛰어도 됨
+- 이 환경변수는 **이 PC에서 electron 바이너리를 새로 받을 때만** 필요. 다른 PC/사내망 밖에서는 불필요
 
-npm run electron:dev        # 데스크탑 앱 (vite 1430 + electron 동시 기동)
-npm run electron:start      # production 경로 (vite build 후 file://로 로드)
-npm run dev -- --port 1435  # AI/검증용 브라우저 프리뷰
-npm run dist                # 배포 빌드 → release/ 에 Setup(NSIS 설치본) + 포터블 exe
+### 2. 평소 개발 — 데스크탑 앱 실행
+```powershell
+npm run electron:dev        # vite(1430) + Electron 동시 기동, HMR 적용
+```
+- **1430 포트는 사용자 전용** — AI 에이전트가 검증용으로 점거하면 안 됨 (충돌 사고 전례 있음)
+- `electron/main.cjs`·`preload.cjs`를 고친 경우는 Electron 재시작 필요 (renderer는 HMR로 충분)
+
+### 3. AI/에이전트 검증 — 브라우저 프리뷰
+```powershell
+npm run dev -- --port 1435  # 1435 = AI 검증 전용 포트 (.claude/launch.json에 설정됨)
+```
+- localStorage는 origin별로 분리되어 1430(실사용)과 레이아웃이 다름 — 검증 끝나면 종료하고 1435가 남아있지 않은지 확인
+
+### 4. 프론트엔드만 빠르게 빌드 확인
+```powershell
+npm run build                # dist/ 생성, 수 초 — 코드 변경 후 1차 검증용
+```
+
+### 5. Electron 부팅 자가진단 (창 없이)
+```powershell
+npm run build
+$env:LIFEDASH_SMOKE='1'; npx electron .
+```
+- production(file://) 경로 그대로 브리지/보드 렌더/IPC fetch를 자가진단 후 PASS/FAIL과 함께 종료
+
+### 6. 배포용 패키징
+```powershell
+npm run dist                 # release/ 에 Setup(NSIS 설치본) + 포터블 exe 생성
 ```
 
 ### 배포 빌드 (electron-builder)
