@@ -112,6 +112,16 @@
 
 .chat-input-row {
   display: flex;
+  align-items: flex-end;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.chat-textarea {
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.4;
+  font: inherit;
+  white-space: pre-wrap;
 }

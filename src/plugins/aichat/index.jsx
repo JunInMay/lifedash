@@ -3,6 +3,7 @@ import { PROVIDERS, DEFAULT_SYSTEM, sendChat } from "./api";
 import "./aichat.css";
 
 const HISTORY_MAX = 100; // storage에 보관할 최대 메시지 수
+const INPUT_MAX_HEIGHT = 120; // 입력란이 이 높이를 넘으면 스크롤로 전환
 
 function AiChatPlugin({ storage }) {
   const [provider, setProvider] = useState(() => storage.get("provider", "claude"));
@@ -15,6 +16,15 @@ function AiChatPlugin({ storage }) {
   const [error, setError] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const msgsRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // 텍스트 길이에 맞춰 입력란 높이 자동 조절, INPUT_MAX_HEIGHT 이상은 스크롤
+  const resizeInput = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + "px";
+  };
 
   const providerInfo = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
   const apiKey = keys[provider] ?? "";
@@ -25,6 +35,11 @@ function AiChatPlugin({ storage }) {
     const el = msgsRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, busy]);
+
+  // 입력 내용이 바뀔 때마다 높이 재계산 (전송 후 비워졌을 때 원래 높이로 복귀 포함)
+  useEffect(() => {
+    resizeInput();
+  }, [input]);
 
   const updateMessages = (next) => {
     setMessages(next);
@@ -133,12 +148,19 @@ function AiChatPlugin({ storage }) {
       {error && <div className="chat-error">{error}</div>}
 
       <div className="chat-input-row">
-        <input
-          className="widget-input"
+        <textarea
+          ref={inputRef}
+          className="widget-input chat-textarea"
+          rows={1}
           value={input}
-          placeholder="Type in English..."
+          placeholder="Type in English... (Shift+Enter로 줄바꿈)"
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
         />
         <button className="widget-btn" onClick={send} disabled={busy}>
           전송
