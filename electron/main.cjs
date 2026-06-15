@@ -1,5 +1,5 @@
 // lifedash-fable Electron 메인 프로세스.
-// Tauri에서 마이그레이션 (MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
+// Tauri에서 마이그레이션 (tasks/MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
 // DOM에 합성되어 z-index/클리핑이 일반 카드처럼 동작한다는 것 (PoC 검증됨).
 const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session } = require("electron");
 const path = require("node:path");

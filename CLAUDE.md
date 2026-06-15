@@ -18,12 +18,12 @@
 | 사용자 | 한국어 사용. 간결한 보고 선호. 위임 후 결과만 확인하는 스타일 |
 | git | 로컬 repo만 존재 (원격 없음). master 브랜치 단일 |
 | 빌드 상태 | `npm run build` ✅ / Electron 스모크(`LIFEDASH_SMOKE=1`) ✅ / 데스크탑 앱은 `npm run electron:dev` |
-| 셸 런타임 | **Electron 42** (2026-06-12 Tauri에서 마이그레이션 — 사유는 MIGRATION.MD와 작업 이력 참조). `src-tauri/`는 git 히스토리로만 남기고 워킹트리에서 삭제됨 (복구: `git checkout 624f315 -- src-tauri`) |
+| 셸 런타임 | **Electron 42** (2026-06-12 Tauri에서 마이그레이션 — 사유는 tasks/MIGRATION.MD와 작업 이력 참조). `src-tauri/`는 git 히스토리로만 남기고 워킹트리에서 삭제됨 (복구: `git checkout 624f315 -- src-tauri`) |
 
 ### ⚠️ 환경 특이사항 (모르면 헤맨다)
 1. **사내망 SSL 인터셉션**: 이 PC는 회사망이라 HTTPS가 자체 서명 인증서로 가로채진다.
    - Node(vite 프록시)에서 외부 HTTPS 호출 시 `self-signed certificate in certificate chain` 에러 → vite 프록시에 `secure: false` 필수 (이미 적용됨)
-   - **electron 바이너리 설치 시** `$env:NODE_EXTRA_CA_CERTS='C:\LF_WIDE\bin\ssl_cert\dev_napi.lfmall.co.kr_2.cer'` 설정 후 `npm install` (MIGRATION.MD 실측)
+   - **electron 바이너리 설치 시** `$env:NODE_EXTRA_CA_CERTS='C:\LF_WIDE\bin\ssl_cert\dev_napi.lfmall.co.kr_2.cer'` 설정 후 `npm install` (tasks/MIGRATION.MD 실측)
    - Electron 메인 프로세스에서는 **Node fetch 대신 `net.fetch`(Chromium 스택)** 사용 — OS 인증서 저장소를 신뢰해 사내망에서도 동작 (electron/main.cjs가 이미 그렇게 함)
    - (레거시 tauri) cargo는 `$env:CARGO_HTTP_CHECK_REVOKE = "false"` 필요
 2. **포트 규칙 (중요, 사용자가 직접 지시함)**:
@@ -36,7 +36,7 @@
 
 ## 기술 스택
 - **Electron 42** — 데스크탑 셸 (2026-06-12 Tauri v2에서 마이그레이션, 31→42 즉시 업그레이드). 진입점 `electron/main.cjs` + `electron/preload.cjs`
-  - 마이그레이션 사유: Tauri child webview는 OS 네이티브 표면이라 드로어/카드가 절대 못 덮음. Electron `<webview>` 태그는 **DOM에 합성**되어 z-index/클리핑이 일반 콘텐츠처럼 동작 (PoC: `electron-poc/`, MIGRATION.MD)
+  - 마이그레이션 사유: Tauri child webview는 OS 네이티브 표면이라 드로어/카드가 절대 못 덮음. Electron `<webview>` 태그는 **DOM에 합성**되어 z-index/클리핑이 일반 콘텐츠처럼 동작 (PoC: `electron-poc/`, tasks/MIGRATION.MD)
 - **React 19** — 프론트엔드 (Tauri 시절 코드 그대로 재사용, Tauri API 호출부만 브리지로 치환)
 - **Vite 7** — 빌드 도구 (`base: "./"` — file:// 로드 대응)
 - **react-draggable / react-resizable** — 카드 드래그/리사이징
@@ -232,7 +232,7 @@ release/                ← npm run dist 출력 (gitignore)
 - **browser(웹뷰) 플러그인 추가**: 월드컵 시청 등 "작게 틀어놓고 보고 싶은 임의 사이트"를 위한 범용 webview 플러그인. youtube/teams처럼 도메인 고정이 아니라 사용자가 주소창에 입력한 URL을 표시(위 "웹뷰 공통" 섹션 참조). 추가 capability/Cargo 변경 없이 기존 webview 권한 재사용. 검증: `npm run build` ✅(304.50 kB / gzip 95.45 kB), 브라우저 프리뷰에서 `.browser-root` 렌더·기본 URL(google.com)·데스크탑 전용 폴백 문구 확인, 콘솔 에러 없음.
 
 ### 2026-06-12 (이어서) — Electron 마이그레이션
-- **결정 배경**: Tauri child webview의 z-order 문제(웹뷰가 드로어/카드를 뚫고 올라옴)는 OS 표면 구조상 근본 해결 불가. 사용자가 Codex와 Electron PoC(`electron-poc/`, MIGRATION.MD)로 `<webview>` 태그의 DOM 합성을 검증한 뒤 전체 마이그레이션 결정.
+- **결정 배경**: Tauri child webview의 z-order 문제(웹뷰가 드로어/카드를 뚫고 올라옴)는 OS 표면 구조상 근본 해결 불가. 사용자가 Codex와 Electron PoC(`electron-poc/`, tasks/MIGRATION.MD)로 `<webview>` 태그의 DOM 합성을 검증한 뒤 전체 마이그레이션 결정.
 - **방식**: 프론트엔드(React/플러그인) 전부 재사용. Tauri API 호출부만 치환:
   - `useChildWebview`(rAF 추적 훅) → 삭제, `WebviewEmbed.jsx`(`<webview>` 한 줄)로 대체 — youtube/teams/browser
   - `plugin-http` 6곳 → `desktop.js`의 `desktopFetch`(IPC → main `net.fetch`)

@@ -49,7 +49,7 @@ npm run electron:start   # production 경로로 바로 실행 (vite build + file
 npm run dist             # 배포 빌드 → release/에 설치본(Setup) + 포터블 exe
 ```
 
-> 2026-06-12 Tauri → Electron 마이그레이션 완료 (배경: [MIGRATION.MD](./MIGRATION.MD)). `src-tauri/`는 git 히스토리에만 보존.
+> 2026-06-12 Tauri → Electron 마이그레이션 완료 (배경: [MIGRATION.MD](./tasks/MIGRATION.MD)). `src-tauri/`는 git 히스토리에만 보존.
 
 ## 참고
 

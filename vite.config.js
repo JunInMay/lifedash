@@ -6,7 +6,7 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   // Electron이 dist/index.html을 file://로 로드할 때 절대 경로(/assets/...)가
-  // 깨지므로 상대 경로로 출력 (MIGRATION.MD의 PoC에서 확인된 이슈)
+  // 깨지므로 상대 경로로 출력 (tasks/MIGRATION.MD의 PoC에서 확인된 이슈)
   base: "./",
   plugins: [react()],
   define: {
