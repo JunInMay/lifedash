@@ -67,6 +67,8 @@ src/
 electron-poc/           ← 마이그레이션 검증용 PoC (소스만 보존, node_modules 제거됨)
 build/                  ← 패키징 리소스 (icon.ico — Tauri 시절 아이콘 재사용)
 release/                ← npm run dist 출력 (gitignore)
+spec/                   ← 플러그인별 스펙 문서 (기능 명세/변경 이력/향후 과제, 예: aichat.md)
+tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 ```
 > `src-tauri/`는 2026-06-12 워킹트리에서 삭제 (git 히스토리에 보존, 마지막 상태: 커밋 `624f315`)
 
