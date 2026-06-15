@@ -33,6 +33,7 @@
 - storage 키 `messages`에 영속, 최대 `HISTORY_MAX = 100`개까지만 보관(오래된 것부터 제거)
 - API 전송 시에는 최근 `SEND_WINDOW = 20`개만 보냄 (요청 비대화 방지)
 - 입력란은 `<textarea>`(자동 높이 조절): 한 줄 입력 시 단일 행 높이, 텍스트가 길어지면 `INPUT_MAX_HEIGHT(120px)`까지 높이가 늘어나고, 그 이상은 내부 스크롤로 전환. Enter로 전송, Shift+Enter로 줄바꿈
+- 입력란 높이가 늘어날 때 메시지 목록은 `flex: 1 1 auto`로 줄어들고 자체 스크롤을 유지한다. 입력 영역이 마지막 메시지를 덮으면 안 되므로 `.plugin-body`/`.chat-root`는 `min-height: 0`과 padding 포함 높이 계산(`box-sizing: border-box`)을 유지해야 한다.
 - "전송" 버튼으로도 전송. 전송 중(`busy`)에는 입력 비활성화 + "..." 로딩 버블 표시
 - "🗑" 버튼으로 대화 전체 삭제(`messages` 초기화, 에러도 클리어)
 - 새 메시지/busy 변경 시 메시지 목록 자동 스크롤(맨 아래로)
@@ -55,6 +56,7 @@
 ## 변경 이력
 - **2026-06-10 (Sonnet)**: 최초 구현. Claude/GPT 듀얼 provider, 영어 회화 시스템 프롬프트 기본값, 대화 storage 영속. 검증: 무효 키로 OpenAI 401 왕복, provider 전환/설정 저장, 버블 UI 렌더.
 - **2026-06-15 (Sonnet)**: 입력란을 `<input>` → 자동 높이 조절 `<textarea>`로 교체 (ChatGPT/Claude 데스크탑처럼 텍스트가 길어지면 입력란이 늘어나고, `INPUT_MAX_HEIGHT(120px)` 이상은 스크롤). Enter 전송/Shift+Enter 줄바꿈으로 변경. 검증: 브라우저 프리뷰에서 8줄 입력 시 120px까지 늘어나고 스크롤 전환(`scrollHeight 185 > clientHeight 118`) 확인, 비우면 원래 높이로 복귀.
+- **2026-06-15 (Codex)**: 자동 높이 입력란이 커질 때 메시지 목록을 덮어 마지막 응답이 보이지 않던 레이아웃 버그 수정. `.plugin-body`와 aichat flex 컨테이너의 `min-height`/`overflow`/`box-sizing`을 보정해 입력행은 아래에 고정되고 `.chat-msgs`가 줄어들며 스크롤되도록 변경. 검증: `npm run build` 통과.
 
 ## 향후 과제 (논의 필요)
 - [ ] DeepL 등 추가 provider — translator의 `engines.js`처럼 추상화 지점은 이미 있음(`PROVIDERS` 배열 + `sendChat` 분기 추가)

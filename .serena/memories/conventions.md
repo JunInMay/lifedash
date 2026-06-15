@@ -14,16 +14,20 @@
   - `storage`: per-instance namespace with `get(field, fallback)`, `set(field, value)`, `remove(field)`.
   - `bus`: shared in-memory pub/sub with `on(event, handler)` returning unsubscribe and `emit(event, payload)`.
   - `width`, `height`: current card size in pixels.
+- Optional plugin settings:
+  - A plugin may attach `Component.Settings = Settings` to expose the common card-header settings overlay.
+  - Settings should write through `storage` and notify the main plugin with `bus.emit("plugin:settings-changed", { instanceId })` when live sync is needed.
 - Persistence keys:
   - Layout: `lifedash.layout` array of `{ instanceId, pluginId, x, y, w, h }`.
   - Plugin data: `lifedash.plugin.<instanceId>` JSON object.
+  - Shared plugin data: `lifedash.shared.<pluginId>` for data that survives instance removal.
   - Removing an instance calls `clearPluginStorage(instanceId)` before removing layout entry.
-- Event names should be namespaced as `<pluginId>:<event>` to avoid cross-plugin collisions.
+- Event names should be namespaced as `<pluginId>:<event>` unless intentionally using a shared core event such as `plugin:settings-changed`.
 - Dashboard owns position/size. Plugins should only store their own domain state via `storage`.
 - Network plugins follow a dual path:
-  - Tauri runtime uses dynamic import from `@tauri-apps/plugin-http`.
-  - Browser dev uses Vite proxy paths like `/yahoo` or `/gtx`.
-- External URL opening should use `@tauri-apps/plugin-opener` in Tauri and browser fallback where appropriate.
-- YouTube plugin uses Tauri child webview, not iframe, because youtube.com blocks normal embedding for full site usage.
+  - Electron runtime uses `desktopFetch` from `src/core/desktop.js`, which goes through `window.lifedash.netFetch` and main-process `net.fetch`.
+  - Browser dev uses Vite proxy paths like `/yahoo`, `/npoll`, `/gtx`, `/dict`, `/gnews`, or `/openai`.
+- External URL opening should use `openExternal` from `src/core/desktop.js` so Electron uses the bridge and browser dev falls back to `window.open`.
+- Webview plugins use `src/core/WebviewEmbed.jsx` with Electron `<webview>` because sites like YouTube and Teams block normal iframe embedding.
 - React StrictMode is enabled; plugin effects that allocate external resources must clean up idempotently.
 - Current code style: plain JS/JSX modules, functional React components, direct CSS class names in `src/App.css` plus plugin-specific CSS where needed.

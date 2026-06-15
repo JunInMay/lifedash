@@ -169,7 +169,7 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 
 **teams** — youtube와 동일 패턴, URL만 `teams.microsoft.com`. `partition="persist:teams"`라 로그인 세션이 재시작 후에도 유지됨.
 
-**aichat** — provider 추상화는 `api.js`의 `sendChat({provider, ...})`. Claude는 `anthropic-dangerous-direct-browser-access` 헤더로 어디서든 직접 호출, OpenAI는 브라우저 CORS 불가라 dev는 `/openai` 프록시·Tauri는 plugin-http. 키/모델은 provider별로 storage에 분리 저장(`keys`, `models` 맵). 모델은 자유 입력(기본 claude-haiku-4-5 / gpt-5-mini — 모델 단종에 대비해 select 대신 텍스트). 시스템 프롬프트 기본값은 영어 회화 파트너(짧은 답 + 문법 교정 괄호), 설정에서 수정 가능. 전송 시 최근 20개 메시지만 보냄(SEND_WINDOW), storage 보관은 최대 100개.
+**aichat** — provider 추상화는 `api.js`의 `sendChat({provider, ...})`. Claude는 `anthropic-dangerous-direct-browser-access` 헤더로 어디서든 직접 호출, OpenAI는 브라우저 CORS 불가라 dev는 `/openai` 프록시·Electron은 `desktopFetch`(IPC → `net.fetch`)로 직접 호출. 키/모델은 provider별로 storage에 분리 저장(`keys`, `models` 맵). 모델은 자유 입력(기본 claude-haiku-4-5 / gpt-5-mini — 모델 단종에 대비해 select 대신 텍스트). 시스템 프롬프트 기본값은 영어 회화 파트너(짧은 답 + 문법 교정 괄호), 설정에서 수정 가능. 전송 시 최근 20개 메시지만 보냄(SEND_WINDOW), storage 보관은 최대 100개. 입력란은 자동 높이 조절 textarea이며, 높이가 늘어날 때 `.chat-msgs`가 줄어들어 마지막 메시지를 덮지 않도록 `plugin-body`/`chat-root`/`chat-msgs` flex 최소 높이와 overflow를 고정해 둠.
 
 **news** — Google News RSS (`news.google.com/rss?hl=..&gl=..&ceid=..`), 국가별 파라미터는 `api.js`의 COUNTRIES. 선택 국가들을 국가당 동일 개수로 가져와 라운드로빈 교차 배치(기사량 많은 국가의 독점 방지 — 사용자 요구). 제목의 " - 매체명" 접미사는 `<source>`와 중복이라 제거. 원래 요구사항에 있던 "1/7/30일 영향력 기사 랭킹"은 무료·무키 소스 부재로 **스펙 아웃** (사용자 확정).
 
@@ -271,6 +271,7 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 - **타겟을 색깔별 별 모양으로, 디플렉터 시각/판정 불일치 버그 수정, 설정 체크박스 레이아웃 수정, 디플렉터 경유 구간별 이동 애니메이션 추가**: 타겟 마커를 `clip-path` 별 모양으로 변경(색은 로봇 색과 동일). 디플렉터 CSS 그라디언트 방향이 실제 꺾임 방향과 반대였던 버그를 그라디언트 방향 스왑으로 수정(원인: `linear-gradient(to top right,...)`은 "\" 줄무늬, `to bottom right`는 "/" — 그라디언트 방향과 줄무늬 방향이 직교). 설정 팝업의 "대각선 벽" 체크박스를 라벨-왼쪽/체크박스-오른쪽으로 정렬. `moveRobot`이 디플렉터 통과 지점들을 포함한 `path` 배열을 반환하도록 확장해, 로봇이 꺾이는 지점마다 멈췄다 가는 구간별 애니메이션 구현. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
 - **중앙 정사각형 "돌" 블록 추가 (보드 크기별 차등) + 벽 두께 축소**: 공식 Ricochet Robots처럼 보드 중앙에 막힌 블록을 배치해 슬라이드의 기준점을 만듦. 보드 크기에 따라 차등(`size<10`→없음, `size<20`→2x2, 그 외→4x4), 일반 벽(얇은 파란 보더)과 구분되는 "돌" 텍스처(`repeating-linear-gradient` 빗줄 패턴)로 렌더링. 일반 벽 보더 두께도 3px→2px로 축소. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
 - **새로고침 버튼 + 최단 이동 수 기반 컷/성공·실패·퍼펙트 판정 추가**: "새 게임"(완전 새 보드) 외에 같은 보드를 초기 로봇 배치로 되돌리는 "새로고침" 버튼 추가. `board.js`의 BFS(`solveBoard`)가 최단 이동 수(`optimalMoves`)도 함께 반환하도록 확장, 컷 = 최단+2로 설정해 헤더에 "이동: N / 컷 M (최단 K)" 표시. 컷 이내 클리어 시 "성공"(이동 수==최단이면 "완벽해요! 🤯🏆"), 컷 초과 시 "실패"(빨간 오버레이) 후 자동 새 게임. **TODO**: 풀이 결과에 실제 최적해 이동 시퀀스를 시뮬레이션해 보여주는 기능(부모 포인터 기반 경로 역추적 필요) — [spec/ricochetrobots.md](spec/ricochetrobots.md)의 "향후 과제" 참조.
+- **aichat 입력창 자동 높이 레이아웃 보정**: 긴 문장을 입력하면 textarea 높이는 늘어나지만 입력 영역이 메시지 목록 위를 덮어 마지막 assistant 메시지를 가리는 문제가 있었음. 원인은 카드 본문/플러그인 루트의 flex 최소 높이와 padding 포함 높이 계산이 부족해 메시지 영역이 정상적으로 줄지 못한 것. `src/App.css`의 `.plugin-body`에 `min-height: 0`, `aichat.css`의 `.chat-root`에 `box-sizing: border-box; min-height: 0; overflow: hidden`, `.chat-msgs`에 `flex: 1 1 auto`, 입력행에 `flex: 0 0 auto`를 적용. 검증: `npm run build` ✅. 주의: 에이전트가 실수로 1430 dev 서버를 잠시 켰다가 문서 규칙에 맞춰 즉시 종료함(다음 검증은 1435 사용).
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**
@@ -353,7 +354,7 @@ npm run dist                 # release/ 에 Setup(NSIS 설치본) + 포터블 ex
 따라서 외부 플러그인은 다음 원칙을 기준으로 설계한다.
 
 - 내장 플러그인은 현재 React 컴포넌트 방식으로 유지할 수 있다.
-- 외부 마켓 플러그인은 별도 iframe 또는 Tauri WebView에서 실행하는 웹앱형 패키지로 다룬다.
+- 외부 마켓 플러그인은 별도 iframe 또는 Electron `<webview>`에서 실행하는 웹앱형 패키지로 다룬다.
 - 앱 본체와 플러그인 사이의 연동은 직접 import가 아니라 `postMessage` 또는 제한된 bridge API로 처리한다.
 - 플러그인의 네트워크, 저장소, 알림, 파일 접근 권한은 `manifest.json`에 선언하고 설치 시 사용자에게 보여준다.
 - 플러그인별 저장소 namespace를 분리하고, 다른 플러그인 또는 앱 본체 데이터에 직접 접근하지 못하게 한다.

@@ -1,20 +1,26 @@
 # Tech Stack
 
 - Frontend: JavaScript JSX, React `^19.1.0`, ReactDOM `^19.1.0`, Vite `^7.0.4`, `@vitejs/plugin-react` `^4.6.0`.
-- Desktop shell: Tauri `2`, Rust edition 2021, `@tauri-apps/api` `^2`, `@tauri-apps/cli` `^2`.
-- Tauri plugins:
-  - `tauri-plugin-http` / `@tauri-apps/plugin-http` for CORS-free external HTTP in desktop runtime.
-  - `tauri-plugin-opener` / `@tauri-apps/plugin-opener` for opening URLs externally.
+- Desktop shell: Electron `^42.4.0`, entry `electron/main.cjs`, preload bridge `electron/preload.cjs`.
+- Electron bridge: renderer uses `src/core/desktop.js` -> `window.lifedash`; main process implements CORS-free `net.fetch`, external URL opening, file picker, fs exists, fullscreen, and `media://` local video protocol.
 - UI mechanics: `react-draggable` `^4.6.0`, `react-resizable` `^4.0.1`.
 - Package manager: npm with committed `package-lock.json`.
-- Vite dev server is fixed to port `1430` with `strictPort: true`; Tauri dev URL is `http://localhost:1430`.
+- Vite config:
+  - `base: "./"` so Electron production can load `dist/index.html` via file://.
+  - `server.port` is `1430` with `strictPort: true` for the user's Electron dev flow. Agents should not occupy 1430 for verification.
+  - Agent/browser verification should use `npm run dev -- --port 1435`.
 - Vite proxies used only for browser dev fallback:
   - `/yahoo` -> `https://query1.finance.yahoo.com`.
+  - `/npoll` -> `https://polling.finance.naver.com`.
   - `/gtx` -> `https://translate.googleapis.com`.
-- Tauri capabilities in `src-tauri/capabilities/default.json` allow:
-  - opener default permission.
-  - child webview create/close/set-position/set-size for youtube plugin.
-  - HTTP URLs for Yahoo Finance, Google Translate, Anthropic API.
-- `tauri = { version = "2", features = ["unstable"] }` is required for child webview usage.
+  - `/dict` -> `https://api.dictionaryapi.dev`.
+  - `/gnews` -> `https://news.google.com`.
+  - `/openai` -> `https://api.openai.com`.
+- Corporate SSL interception notes:
+  - Vite proxies use `secure: false`.
+  - Electron main uses `net.fetch` instead of Node fetch because Chromium trusts the OS certificate store.
+  - If reinstalling Electron binaries inside the corporate network, set `$env:NODE_EXTRA_CA_CERTS = 'C:\LF_WIDE\bin\ssl_cert\dev_napi.lfmall.co.kr_2.cer'` before `npm install`.
+- Packaging: `electron-builder` via `npm run dist`; package.json uses `electronDist: node_modules/electron/dist` to avoid endpoint-security rename failures during unpack.
+- Legacy Tauri references may exist in docs/history only; active runtime is Electron.
 - No TypeScript config is present despite Serena detecting TypeScript; source files are `.js` and `.jsx`.
 - No lint/test/typecheck tooling is currently configured in `package.json`.
