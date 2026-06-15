@@ -108,6 +108,12 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 | `bus` | 이벤트 버스 `{ on(event, handler) → unsubscribe, emit(event, payload) }` — 이벤트명 컨벤션 `"<pluginId>:<event>"` |
 | `width` / `height` | 현재 카드 크기 (px, 리사이즈 종료 시점에만 갱신) |
 
+### 카드 헤더 설정 팝업 (선택)
+플러그인별 설정 UI가 필요하면 `index.jsx`에서 `Settings` 컴포넌트를 추가로 export하고 default export에 `Component.Settings = Settings`로 붙인다. `PluginCard`가 이를 감지해 카드 헤더(✕ 옆)에 ⚙ 버튼을 자동으로 표시하고, 클릭 시 `.plugin-body` 위에 모달 오버레이로 `Settings`를 띄운다. 오버레이가 열려 있는 동안 플러그인 본문과의 상호작용은 차단되며, 헤더의 ✕(닫기) 또는 오버레이 바깥 클릭으로 닫힌다. `Settings`가 필요 없는 플러그인은 그냥 export하지 않으면 ⚙ 버튼 자체가 안 보인다.
+
+- **Settings props**: `instanceId`, `storage`, `bus` (메인 컴포넌트와 동일)
+- **메인 컴포넌트와의 동기화**: `Settings`는 `storage.set(...)`으로 설정을 저장한 뒤 `bus.emit("plugin:settings-changed", { instanceId })`를 호출. 메인 컴포넌트는 `bus.on("plugin:settings-changed", ...)`로 구독해 `payload.instanceId`가 자신과 일치할 때 storage를 다시 읽어 반영(예: `ricochetrobots`가 이 패턴의 첫 사례)
+
 ### 저장소 키 구조 (localStorage)
 - `lifedash.layout` — 인스턴스 배열 `[{ instanceId, pluginId, x, y, w, h }]`
 - `lifedash.plugin.<instanceId>` — 플러그인 인스턴스별 데이터. 인스턴스 제거 시 함께 삭제됨
@@ -149,6 +155,7 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 | `stocks` | 종목 검색 | 미국·한국 주식/ETF 검색, 일간 등락·3개월 차트·재무지표·즐겨찾기 | Yahoo Finance (무키, 아래 메모 필독) |
 | `videoplayer` | 동영상 재생기 | 여러 경로의 로컬 동영상을 모아 재생, 우측 목록·호버 컨트롤·카드 내 최대화 | - (로컬 파일, 데스크탑 전용) |
 | `browser` | 웹뷰 | 사용자가 입력한 임의 URL을 `<webview>`로 카드 안에 표시, 주소창에서 변경 가능 | - (데스크탑 전용) |
+| `ricochetrobots` | 리코셰 로봇 | 1인 미니게임, 8~24 랜덤 보드(다크 테마, 대각선 벽 옵션), 로봇 슬라이드 애니메이션 이동으로 목표 도달 | - |
 
 ### 플러그인별 구현 메모
 
@@ -255,6 +262,15 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
   - OS 메뉴바(File/Edit/...) 제거 — `Menu.setApplicationMenu(null)`. 추후 앱 내 설정 섹션으로 대체 예정. 부작용: Ctrl+R/F12 기본 단축키도 사라짐(dev는 detached devtools 자동 오픈으로 커버)
   - **Teams 클래식 퇴역 화면 문제**: Tauri의 WebView2(OS 최신 Edge 엔진, 현행 UA)와 달리 Electron 31은 Chromium 126(2년 전) + UA에 `Electron/31` 토큰 → Microsoft UA 스니핑이 퇴역한 클래식 Teams로 라우팅. **해결**: ① `app.userAgentFallback`에서 앱/Electron 토큰 제거(웹뷰 세션에도 적용), ② Electron 42로 업그레이드(Chromium 148 — UA를 속이는 게 아니라 실제 최신 엔진). 스모크에서 UA가 순수 `Chrome/148`로 나가는 것 확인
   - 교훈: **Electron은 엔진이 앱에 박제되므로 주기적 업그레이드 필요** (Tauri/WebView2는 OS가 갱신해줬음). 웹뷰 플러그인이 "구형 브라우저" 취급받기 시작하면 electron 버전부터 확인할 것
+
+### 2026-06-15
+- **ricochetrobots 플러그인 추가**: 1인용 Ricochet Robots 미니게임 (멀티플레이 없음, 사용자 명시). 12x12 랜덤 보드(랜덤 벽 22개·로봇 4색·랜덤 타겟), 클릭으로 로봇 선택 후 방향키로 슬라이드 이동, 이동 횟수 카운터, 클리어 시 자동 새 게임. 다크 테마(앱과 동일) + 컨테이너 쿼리 기반 정사각형 셀(원형 로봇/타겟 유지). 이후 ⚙ 설정(판 크기 8~24, 대각선 벽 디플렉터)과 로봇 이동 슬라이드 애니메이션 추가, 이동 횟수 +2 카운트 버그(StrictMode 이중 호출) 수정. 상세 변경 이력은 [spec/ricochetrobots.md](spec/ricochetrobots.md). 검증: `npm run build` ✅, 브라우저 프리뷰(1435)에서 다크 보드/원형 로봇·타겟/선택·이동/설정 변경(판 크기·대각선 벽)·디플렉터 경유 슬라이드 확인.
+- **플러그인 카드 헤더에 공통 ⚙ 설정 팝업 메커니즘 추가**: ricochetrobots의 설정 UI를 플러그인 내부 인라인 패널에서 `PluginCard`(카드 헤더, ✕ 옆) 공통 ⚙ 버튼 + 모달 오버레이로 이동. 플러그인이 `index.jsx`에서 `Component.Settings`를 export하면 자동으로 ⚙ 버튼이 노출되고, 없으면 버튼이 보이지 않음(플러그인별 선택적 기능). 오버레이는 `.plugin-body` 위에 떠서 본문 상호작용을 막고, ✕ 또는 바깥 클릭으로 닫힘. 설정↔본문 동기화는 `bus.emit("plugin:settings-changed", { instanceId })` 컨벤션으로 처리(상세는 위 "카드 헤더 설정 팝업" 섹션). 검증: `npm run build` ✅, 프리뷰에서 ⚙ 클릭 시 오버레이가 보드를 덮고 뒤의 로봇 클릭이 막히는 것, 판 크기 변경 시 보드가 즉시 재생성되는 것, ✕로 닫은 후 로봇 선택이 정상 동작하는 것 확인.
+- **대각선 디플렉터 규칙을 공식 Ricochet Robots 룰로 수정**: 사용자가 "모든 게 튕겨나가는 스펙이 아니다"라고 정정 → 웹 검색 결과 공식 룰은 디플렉터에 색이 있고 **같은 색 로봇은 통과, 다른 색만 90도 꺾임**. `diagonals[y][x]`를 `{shape, color}`로 변경, `moveRobot`에서 로봇 색==디플렉터 색이면 방향 유지(통과). 보드 렌더링도 디플렉터를 해당 로봇 색으로 표시. 검증: `npm run build` ✅, `board.js`의 `moveRobot` 직접 호출로 동일색 통과/타색 90도 전환 모두 단위 확인. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
+- **보드 풀이 가능성 검증 추가**: 사용자 질문 "풀이가 100% 있다는게 검증이 됐어?" → 기존엔 완전 랜덤 생성만 하고 검증 없었음. `board.js`에 깊이/노드 수 제한 BFS `isSolvable` 추가, `generateBoard`가 통과할 때까지(최대 40회) 재생성. 첫 구현(깊이 8수, 무제한)은 "해 없음" 증명을 위한 전체 탐색이 폭발해 size 20+대각선에서 최대 3.6초~30초 타임아웃까지 발생 → **방문 상태 수 한도(1500)**를 추가해 한도 도달 시 즉시 "실패→재생성"으로 전환, 깊이는 10수로. 검증: 콘솔에서 size 8~24 × 대각선 유무 반복 측정, 최악(24x24+대각선) 259.7ms로 체감 지연 없음. `npm run build` ✅, 24x24+대각선 보드 정상 렌더 확인. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
+- **타겟을 색깔별 별 모양으로, 디플렉터 시각/판정 불일치 버그 수정, 설정 체크박스 레이아웃 수정, 디플렉터 경유 구간별 이동 애니메이션 추가**: 타겟 마커를 `clip-path` 별 모양으로 변경(색은 로봇 색과 동일). 디플렉터 CSS 그라디언트 방향이 실제 꺾임 방향과 반대였던 버그를 그라디언트 방향 스왑으로 수정(원인: `linear-gradient(to top right,...)`은 "\" 줄무늬, `to bottom right`는 "/" — 그라디언트 방향과 줄무늬 방향이 직교). 설정 팝업의 "대각선 벽" 체크박스를 라벨-왼쪽/체크박스-오른쪽으로 정렬. `moveRobot`이 디플렉터 통과 지점들을 포함한 `path` 배열을 반환하도록 확장해, 로봇이 꺾이는 지점마다 멈췄다 가는 구간별 애니메이션 구현. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
+- **중앙 정사각형 "돌" 블록 추가 (보드 크기별 차등) + 벽 두께 축소**: 공식 Ricochet Robots처럼 보드 중앙에 막힌 블록을 배치해 슬라이드의 기준점을 만듦. 보드 크기에 따라 차등(`size<10`→없음, `size<20`→2x2, 그 외→4x4), 일반 벽(얇은 파란 보더)과 구분되는 "돌" 텍스처(`repeating-linear-gradient` 빗줄 패턴)로 렌더링. 일반 벽 보더 두께도 3px→2px로 축소. 상세는 [spec/ricochetrobots.md](spec/ricochetrobots.md).
+- **새로고침 버튼 + 최단 이동 수 기반 컷/성공·실패·퍼펙트 판정 추가**: "새 게임"(완전 새 보드) 외에 같은 보드를 초기 로봇 배치로 되돌리는 "새로고침" 버튼 추가. `board.js`의 BFS(`solveBoard`)가 최단 이동 수(`optimalMoves`)도 함께 반환하도록 확장, 컷 = 최단+2로 설정해 헤더에 "이동: N / 컷 M (최단 K)" 표시. 컷 이내 클리어 시 "성공"(이동 수==최단이면 "완벽해요! 🤯🏆"), 컷 초과 시 "실패"(빨간 오버레이) 후 자동 새 게임. **TODO**: 풀이 결과에 실제 최적해 이동 시퀀스를 시뮬레이션해 보여주는 기능(부모 포인터 기반 경로 역추적 필요) — [spec/ricochetrobots.md](spec/ricochetrobots.md)의 "향후 과제" 참조.
 
 ## 검증 방법 (다음 에이전트용)
 1. **프론트만**: `npm run build` (수 초). UI 동작은 `npm run dev -- --port 1435`로 브라우저 확인 — **1430 쓰지 말 것, 끝나면 종료할 것**

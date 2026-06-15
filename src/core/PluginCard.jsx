@@ -9,6 +9,7 @@ import "react-resizable/css/styles.css";
 function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) {
   const nodeRef = useRef(null);
   const [pos, setPos] = useState({ x: instance.x, y: instance.y });
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const resizeStart = useRef(null);
 
   // 정렬 버튼 등 외부에서 좌표가 바뀌면 로컬 드래그 상태도 따라가게 동기화
@@ -25,6 +26,7 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
   if (!Plugin) return null;
 
   const minSize = Plugin.manifest.minSize ?? { w: 200, h: 150 };
+  const hasSettings = !!Plugin.Settings;
 
   return (
     <Draggable
@@ -76,13 +78,24 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
             <span className="plugin-title">
               {Plugin.manifest.icon} {Plugin.manifest.name}
             </span>
-            <button
-              className="plugin-close"
-              title="플러그인 제거"
-              onClick={() => onRemove(instance.instanceId)}
-            >
-              ✕
-            </button>
+            <div className="plugin-header-actions">
+              {hasSettings && (
+                <button
+                  className="plugin-settings-toggle"
+                  title="플러그인 설정"
+                  onClick={() => setSettingsOpen((o) => !o)}
+                >
+                  ⚙
+                </button>
+              )}
+              <button
+                className="plugin-close"
+                title="플러그인 제거"
+                onClick={() => onRemove(instance.instanceId)}
+              >
+                ✕
+              </button>
+            </div>
           </div>
           <div className="plugin-body">
             <Plugin
@@ -92,6 +105,29 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
               width={instance.w}
               height={instance.h}
             />
+            {hasSettings && settingsOpen && (
+              <div
+                className="plugin-settings-overlay"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setSettingsOpen(false);
+                }}
+              >
+                <div className="plugin-settings-panel">
+                  <div className="plugin-settings-panel-header">
+                    <span>{Plugin.manifest.name} 설정</span>
+                    <button className="plugin-close" onClick={() => setSettingsOpen(false)}>
+                      ✕
+                    </button>
+                  </div>
+                  <Plugin.Settings
+                    instanceId={instance.instanceId}
+                    storage={storage}
+                    bus={eventBus}
+                    close={() => setSettingsOpen(false)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </ResizableBox>
       </div>

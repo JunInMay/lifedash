@@ -1,0 +1,9 @@
+{
+  "id": "ricochetrobots",
+  "name": "리코셰 로봇",
+  "icon": "🤖",
+  "description": "혼자 즐기는 리코셰 로봇 퍼즐",
+  "version": "1.0.0",
+  "defaultSize": { "w": 380, "h": 440 },
+  "minSize": { "w": 260, "h": 300 }
+}

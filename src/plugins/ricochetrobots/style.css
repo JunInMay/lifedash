@@ -1,0 +1,209 @@
+.rr-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  outline: none;
+  font-size: 13px;
+  gap: 6px;
+  color: #e6e6e6;
+}
+
+.rr-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rr-moves {
+  font-weight: 600;
+}
+
+.rr-target {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rr-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.rr-new {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid #3a3f4b;
+  border-radius: 6px;
+  background: #262a33;
+  color: #e6e6e6;
+  cursor: pointer;
+}
+
+.rr-new:hover {
+  background: #303542;
+}
+
+.rr-settings-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.rr-settings-popup label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.rr-settings-popup select {
+  background: #262a33;
+  color: #e6e6e6;
+  border: 1px solid #3a3f4b;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.rr-checkbox {
+  cursor: pointer;
+}
+
+.rr-board-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
+.rr-board {
+  display: grid;
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  background: #15171c;
+  border: 2px solid #343945;
+  border-radius: 4px;
+  position: relative;
+}
+
+.rr-cell {
+  border-style: solid;
+  box-sizing: border-box;
+}
+
+/* 중앙 2x2 블록 — 일반 벽(얇은 경계선)과 구분되는 막힌 "돌" 칸 */
+.rr-cell-blocked {
+  background: repeating-linear-gradient(
+    135deg,
+    #4a4f5c 0px,
+    #4a4f5c 6px,
+    #3c4047 6px,
+    #3c4047 12px
+  );
+  border: 1px solid #20232a;
+}
+
+.rr-robot-wrap {
+  position: absolute;
+  transition: left 0.12s ease, top 0.12s ease;
+}
+
+.rr-target-wrap {
+  position: absolute;
+}
+
+.rr-robot {
+  width: 64%;
+  height: 64%;
+  margin: 18%;
+  border-radius: 50%;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: inset 0 -3px 4px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25);
+}
+
+.rr-robot.rr-selected {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.85),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.35),
+    inset 0 2px 3px rgba(255, 255, 255, 0.25);
+}
+
+.rr-red {
+  background: #e74c3c;
+}
+
+.rr-green {
+  background: #2ecc71;
+}
+
+.rr-blue {
+  background: #3498db;
+}
+
+.rr-yellow {
+  background: #f1c40f;
+}
+
+.rr-target-mark {
+  width: 60%;
+  height: 60%;
+  margin: 20%;
+  opacity: 0.85;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+.rr-target-mark.rr-red {
+  background: #e74c3c;
+}
+
+.rr-target-mark.rr-green {
+  background: #2ecc71;
+}
+
+.rr-target-mark.rr-blue {
+  background: #3498db;
+}
+
+.rr-target-mark.rr-yellow {
+  background: #f1c40f;
+}
+
+.rr-cleared {
+  position: absolute;
+  inset: 0;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4em;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  pointer-events: none;
+}
+
+.rr-cleared.rr-fail {
+  background: rgba(120, 20, 20, 0.6);
+}

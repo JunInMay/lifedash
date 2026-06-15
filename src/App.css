@@ -113,6 +113,12 @@ button {
   font-weight: 600;
 }
 
+.plugin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .plugin-close {
   border: none;
   background: transparent;
@@ -126,9 +132,62 @@ button {
   color: #f87171;
 }
 
+.plugin-settings-toggle {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.plugin-settings-toggle:hover {
+  color: #8ab4f8;
+}
+
 .plugin-body {
   flex: 1;
   overflow: auto;
+  position: relative;
+}
+
+/* ---- 플러그인 설정 팝업 (카드 헤더 ⚙ 버튼) ---- */
+
+.plugin-settings-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 12px;
+}
+
+.plugin-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  padding: 12px;
+  background: #1d2026;
+  border: 1px solid #343945;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  color: #e6e6e6;
+}
+
+.plugin-settings-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #2b2f38;
 }
 
 /* react-resizable 핸들 다크테마 보정 */
