@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PROVIDERS, DEFAULT_SYSTEM, sendChat } from "./api";
 import "./aichat.css";
 
@@ -26,19 +26,25 @@ function AiChatPlugin({ storage }) {
     el.style.height = Math.min(el.scrollHeight, INPUT_MAX_HEIGHT) + "px";
   };
 
+  const scrollMessagesToBottom = () => {
+    const el = msgsRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
   const providerInfo = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
   const apiKey = keys[provider] ?? "";
   const model = models[provider] ?? providerInfo.defaultModel;
 
   // 새 메시지가 생기면 맨 아래로 스크롤
   useEffect(() => {
-    const el = msgsRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    scrollMessagesToBottom();
   }, [messages, busy]);
 
-  // 입력 내용이 바뀔 때마다 높이 재계산 (전송 후 비워졌을 때 원래 높이로 복귀 포함)
-  useEffect(() => {
+  // 입력 높이가 바뀌면 메시지 영역 높이도 줄어드므로 스크롤 바닥을 다시 맞춘다.
+  useLayoutEffect(() => {
     resizeInput();
+    const frame = requestAnimationFrame(scrollMessagesToBottom);
+    return () => cancelAnimationFrame(frame);
   }, [input]);
 
   const updateMessages = (next) => {

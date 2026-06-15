@@ -17,7 +17,7 @@
   - `electron/preload.cjs`: exposes `window.lifedash` with CORS-free fetch, openExternal, file picker, fs exists, fullscreen, mediaSrc.
 - Plugin convention: each plugin lives under `src/plugins/<id>/` with `index.jsx` default export and `manifest.json`; folder id should match `manifest.id`.
 - Implemented plugins: aichat, browser, clock, dictionary, links, markets, news, notes, ricochetrobots, stocks, teams, timer, todo, translator, videoplayer, youtube.
-- aichat layout note: auto-growing textarea must not cover messages. Keep `.plugin-body` and aichat flex containers shrinkable (`min-height: 0`) and keep `.chat-root` padding inside its 100% height (`box-sizing: border-box`).
+- aichat layout note: auto-growing textarea must not cover messages. Keep `.plugin-body` and aichat flex containers shrinkable (`min-height: 0`) and keep `.chat-root` padding inside its 100% height (`box-sizing: border-box`). When input height changes after messages exist, rerun bottom-scroll after resizing because `.chat-msgs.clientHeight` shrinks.
 - Generated/build directories present: `node_modules`, `dist`, `release`; ignore generated trees during analysis.
 
 Read `mem:tech_stack` for framework/tooling versions and native capability details. Read `mem:conventions` for plugin/storage/event naming rules. Read `mem:suggested_commands` for day-to-day commands. Read `mem:task_completion` before finishing code changes.
