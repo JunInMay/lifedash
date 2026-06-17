@@ -4,6 +4,7 @@ import PluginDrawer from "./PluginDrawer";
 import { getPlugin } from "./PluginRegistry";
 import { loadLayout, saveLayout, clearPluginStorage } from "./storage";
 import { toggleFullscreen } from "./desktop";
+import { log, logAction } from "./logger";
 
 // 첫 실행 시 기본 배치
 const defaultInstances = [
@@ -12,7 +13,11 @@ const defaultInstances = [
 ];
 
 function Dashboard() {
-  const [instances, setInstances] = useState(() => loadLayout() ?? defaultInstances);
+  const [instances, setInstances] = useState(() => {
+    const layout = loadLayout() ?? defaultInstances;
+    log.info("dashboard loaded", { instanceCount: layout.length });
+    return layout;
+  });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const boardRef = useRef(null);
 
@@ -47,10 +52,12 @@ function Dashboard() {
     const size = Plugin.manifest.defaultSize ?? { w: 280, h: 200 };
     // 같은 자리에 겹쳐 쌓이지 않게 개수만큼 계단식 배치
     const offset = 24 + (instances.length % 8) * 32;
+    const instanceId = crypto.randomUUID();
+    logAction("plugin:add", { pluginId, instanceId });
     update([
       ...instances,
       {
-        instanceId: crypto.randomUUID(),
+        instanceId,
         pluginId,
         x: offset,
         y: offset,
@@ -61,6 +68,8 @@ function Dashboard() {
   };
 
   const handleRemove = (instanceId) => {
+    const target = instances.find((it) => it.instanceId === instanceId);
+    logAction("plugin:remove", { pluginId: target?.pluginId, instanceId });
     clearPluginStorage(instanceId);
     update(instances.filter((it) => it.instanceId !== instanceId));
   };

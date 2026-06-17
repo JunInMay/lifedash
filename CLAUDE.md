@@ -54,8 +54,8 @@
 
 ```
 electron/
-  main.cjs              ← Electron 메인: 창 생성, IPC(net:fetch/dialog/fs/fullscreen/openExternal),
-                          media:// 프로토콜, 스모크 테스트(LIFEDASH_SMOKE=1)
+  main.cjs              ← Electron 메인: 창 생성, IPC(net:fetch/dialog/fs/fullscreen/openExternal/log:write),
+                          media:// 프로토콜, 스모크 테스트(LIFEDASH_SMOKE=1), electron-log 파일 로그
   preload.cjs           ← window.lifedash 브리지 노출 (contextIsolation+sandbox 유지)
 src/
   core/
@@ -63,9 +63,10 @@ src/
     Dashboard.jsx       ← 칠판: 인스턴스 추가/제거/배치 관리
     PluginCard.jsx      ← 드래그/리사이즈/닫기 카드 셸
     PluginDrawer.jsx    ← "+ 플러그인" 추가 패널
-    eventBus.js         ← 플러그인 간 pub/sub 이벤트 버스
+    eventBus.js         ← 플러그인 간 pub/sub 이벤트 버스 (모든 emit을 debug 레벨 로깅)
     storage.js          ← 레이아웃 + 플러그인별 네임스페이스 저장소
     desktop.js          ← 데스크탑 브리지 헬퍼 (isDesktop/desktopFetch/openExternal/toggleFullscreen)
+    logger.js           ← 통합 로거: log.info/warn/error/debug() + logAction() (상세: spec/logger.md)
     WebviewEmbed.jsx    ← <webview> 임베드 컴포넌트 (youtube/teams/browser가 사용)
   plugins/
     <plugin-dir>/
@@ -265,6 +266,7 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
   - 교훈: **Electron은 엔진이 앱에 박제되므로 주기적 업그레이드 필요** (Tauri/WebView2는 OS가 갱신해줬음). 웹뷰 플러그인이 "구형 브라우저" 취급받기 시작하면 electron 버전부터 확인할 것
 
 ### 2026-06-17
+- **로깅 시스템 추가**: `electron-log` 기반 파일 로그 + 렌더러 통합 로거 구현. `src/core/logger.js`에 `log.info/warn/error/debug()` + `logAction()` API. 렌더러 → `window.lifedash.logWrite()` IPC → 메인 `electron-log` → `%APPDATA%\lifedash-fable\logs\main.log` 기록(최대 5MB×5 로테이션). 브라우저 dev에서는 콘솔만 출력. Dashboard(앱 시작·플러그인 추가/제거), eventBus(모든 emit debug) 로깅 적용. 상세는 [spec/logger.md](spec/logger.md). 검증: `npm run build` ✅.
 - **engexpr 플러그인 추가**: 영어 표현 랜덤 추천 (구동사/문장구조/표현 57개 내장). 카드 5개 세로 목록, type badge, usage 설명(영어), 예문. ↻ 단일 새로고침 / ⟳ Shuffle All / ★ Familiar / 🔖 Bookmarks (각 팝업). Got it! 처리 시 familiar 이동 + 슬롯 자동 교체. 상세는 [spec/engexpr.md](spec/engexpr.md).
 - **engexpr ⚙ Settings**: AI provider(Claude/GPT) + API key + model 설정. "Generate 30 expressions" 버튼으로 AI 호출 → id 기반 중복 제거 → 신규만 extraPool(localStorage)에 추가. extraPool View(토글)/항목별 삭제/Clear all (각 confirm 포함).
 - **scripts/gen-expressions.js 추가**: AI로 표현 생성 후 data.js에 직접 하드코딩하는 개발용 스크립트. `node scripts/gen-expressions.js --key sk-ant-xxx [--provider openai] [--count 30]`. 기존 id 읽어 중복 제거 후 EXPRESSIONS 배열 끝에 삽입, git diff 검수 후 커밋하는 시드 데이터 확장 워크플로우.
