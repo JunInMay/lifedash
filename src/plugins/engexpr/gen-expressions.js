@@ -19,7 +19,7 @@ import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_PATH = resolve(__dirname, "../src/plugins/engexpr/data.js");
+const DATA_PATH = resolve(__dirname, "./data.js");
 
 // ── CLI 파싱 ──────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
