@@ -4,6 +4,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+const { execSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const log = require("electron-log/main");
 
@@ -134,6 +135,12 @@ ipcMain.handle("engexpr:append-data", (_e, newItems) => {
   const header = `\n  // ── AI Generated (${today}) ────────────────────────────────────────\n`;
   const updated = src.slice(0, insertPoint) + header + block + "\n" + src.slice(insertPoint);
   fs.writeFileSync(dataPath, updated, "utf-8");
+
+  const projectRoot = path.join(__dirname, "..");
+  execSync(`git add "${dataPath}"`, { cwd: projectRoot });
+  execSync(`git commit -m "engexpr: AI 생성 표현 ${newItems.length}개 추가 (${today})"`, { cwd: projectRoot });
+  execSync("git push", { cwd: projectRoot });
+
   return newItems.length;
 });
 
