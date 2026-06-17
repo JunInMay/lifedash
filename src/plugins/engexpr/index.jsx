@@ -107,11 +107,11 @@ function Popup({ title, items, emptyMsg, removeTitle, onRemove, onClose }) {
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 function Settings({ storage, bus, instanceId }) {
-  const [provider, setProvider] = useState(() => storage.get("aiProvider", "claude"));
-  const [apiKey, setApiKey] = useState(() => storage.get("aiKey", ""));
+  const [provider, setProvider] = useState(() => sharedStorage.get("aiProvider", "claude"));
+  const [apiKey, setApiKey] = useState(() => sharedStorage.get("aiKey", ""));
   const [model, setModel] = useState(() => {
-    const saved = storage.get("aiModel", null);
-    return saved ?? PROVIDERS.find((p) => p.id === storage.get("aiProvider", "claude"))?.defaultModel ?? "";
+    const saved = sharedStorage.get("aiModel", null);
+    return saved ?? PROVIDERS.find((p) => p.id === sharedStorage.get("aiProvider", "claude"))?.defaultModel ?? "";
   });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(null);
@@ -121,20 +121,20 @@ function Settings({ storage, bus, instanceId }) {
 
   const saveProvider = (id) => {
     setProvider(id);
-    storage.set("aiProvider", id);
+    sharedStorage.set("aiProvider", id);
     const def = PROVIDERS.find((p) => p.id === id)?.defaultModel ?? "";
     setModel(def);
-    storage.set("aiModel", def);
+    sharedStorage.set("aiModel", def);
   };
 
   const saveKey = (val) => {
     setApiKey(val);
-    storage.set("aiKey", val);
+    sharedStorage.set("aiKey", val);
   };
 
   const saveModel = (val) => {
     setModel(val);
-    storage.set("aiModel", val);
+    sharedStorage.set("aiModel", val);
   };
 
   const fetchGenerated = async () => {
