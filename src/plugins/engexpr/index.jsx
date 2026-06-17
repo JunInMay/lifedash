@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { EXPRESSIONS, TYPE_COLORS } from "./data";
 import { generateExpressions } from "./aiGen";
+import { createSharedStorage } from "../../core/storage";
 import "./engexpr.css";
+
+const sharedStorage = createSharedStorage("engexpr");
 
 const CARD_COUNT = 5;
 
@@ -112,7 +115,7 @@ function Settings({ storage, bus, instanceId }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(null);
   const [showPool, setShowPool] = useState(false);
-  const [extraPool, setExtraPool] = useState(() => storage.get("extraPool", []));
+  const [extraPool, setExtraPool] = useState(() => sharedStorage.get("extraPool", []));
   const totalPool = getAllExpressions(extraPool);
 
   const saveProvider = (id) => {
@@ -144,7 +147,7 @@ function Settings({ storage, bus, instanceId }) {
         existingIds
       );
       const nextPool = [...extraPool, ...added];
-      storage.set("extraPool", nextPool);
+      sharedStorage.set("extraPool", nextPool);
       setExtraPool(nextPool);
       bus.emit("plugin:settings-changed", { instanceId });
       setStatus({ ok: `Added ${added.length} new expressions. (${skipped} duplicates skipped)` });
@@ -157,7 +160,7 @@ function Settings({ storage, bus, instanceId }) {
 
   const handleClearPool = () => {
     if (!window.confirm(`Clear all ${extraPool.length} AI-generated expressions? This cannot be undone.`)) return;
-    storage.set("extraPool", []);
+    sharedStorage.set("extraPool", []);
     setExtraPool([]);
     bus.emit("plugin:settings-changed", { instanceId });
     setStatus({ ok: "Extra pool cleared." });
@@ -167,7 +170,7 @@ function Settings({ storage, bus, instanceId }) {
     const item = extraPool.find((e) => e.id === id);
     if (!window.confirm(`Remove "${item?.expression}"?`)) return;
     const next = extraPool.filter((e) => e.id !== id);
-    storage.set("extraPool", next);
+    sharedStorage.set("extraPool", next);
     setExtraPool(next);
     bus.emit("plugin:settings-changed", { instanceId });
   };
@@ -275,14 +278,14 @@ function Settings({ storage, bus, instanceId }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 function EngExprPlugin({ instanceId, storage, bus }) {
-  const [extraPool, setExtraPool] = useState(() => storage.get("extraPool", []));
+  const [extraPool, setExtraPool] = useState(() => sharedStorage.get("extraPool", []));
   const [familiar, setFamiliar] = useState(() => storage.get("familiar", []));
   const [bookmarks, setBookmarks] = useState(() => storage.get("bookmarks", []));
 
   const pool = getAllExpressions(extraPool);
 
   const [slots, setSlots] = useState(() =>
-    initSlots(storage.get("familiar", []), getAllExpressions(storage.get("extraPool", [])))
+    initSlots(storage.get("familiar", []), getAllExpressions(sharedStorage.get("extraPool", [])))
   );
   const [popup, setPopup] = useState(null);
 
@@ -290,7 +293,7 @@ function EngExprPlugin({ instanceId, storage, bus }) {
   useEffect(() => {
     return bus.on("plugin:settings-changed", ({ instanceId: id }) => {
       if (id !== instanceId) return;
-      const next = storage.get("extraPool", []);
+      const next = sharedStorage.get("extraPool", []);
       setExtraPool(next);
     });
   }, [bus, instanceId, storage]);
@@ -300,7 +303,7 @@ function EngExprPlugin({ instanceId, storage, bus }) {
 
   const refreshSlot = useCallback(
     (index) => {
-      const currentPool = getAllExpressions(storage.get("extraPool", []));
+      const currentPool = getAllExpressions(sharedStorage.get("extraPool", []));
       setSlots((prev) => {
         const usedIds = prev.filter((_, i) => i !== index).map((e) => e?.id).filter(Boolean);
         const next = [...prev];
@@ -312,8 +315,8 @@ function EngExprPlugin({ instanceId, storage, bus }) {
   );
 
   const shuffleAll = () => {
-    const currentPool = getAllExpressions(storage.get("extraPool", []));
-    setExtraPool(storage.get("extraPool", []));
+    const currentPool = getAllExpressions(sharedStorage.get("extraPool", []));
+    setExtraPool(sharedStorage.get("extraPool", []));
     setSlots(initSlots(familiar, currentPool));
   };
 
@@ -323,7 +326,7 @@ function EngExprPlugin({ instanceId, storage, bus }) {
     const nextFamiliar = [...familiar, item.id];
     saveFamiliar(nextFamiliar);
     if (bookmarks.includes(item.id)) saveBookmarks(bookmarks.filter((b) => b !== item.id));
-    const currentPool = getAllExpressions(storage.get("extraPool", []));
+    const currentPool = getAllExpressions(sharedStorage.get("extraPool", []));
     setSlots((prev) => {
       const usedIds = prev.filter((_, i) => i !== index).map((e) => e?.id).filter(Boolean);
       const next = [...prev];
