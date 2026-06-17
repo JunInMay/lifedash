@@ -728,6 +728,85 @@ export const EXPRESSIONS = [
     usage: "Use this when you want to express handling or managing something.",
     example: "Can you take care of the pets while I'm away?",
   },
+
+  // ── AI Generated (2026-06-17) ────────────────────────────────────────
+  {
+    id: "ex-pull-someone",
+    type: "Expression",
+    expression: "pull someone's leg",
+    usage: "Use this when you want to joke or tease someone playfully.",
+    example: "I was just pulling your leg about the surprise party!",
+  },
+  {
+    id: "ss-althought",
+    type: "Sentence Structure",
+    expression: "although... yet...",
+    usage: "Use this when contrasting two ideas or situations.",
+    example: "Although it was raining, we decided to go for a hike yet we had fun.",
+  },
+  {
+    id: "ex-kick-the-can",
+    type: "Expression",
+    expression: "kick the can down the road",
+    usage: "Use this when you avoid making a decision or taking action.",
+    example: "They decided to kick the can down the road instead of addressing the problem.",
+  },
+  {
+    id: "ex-burn-the-midnight",
+    type: "Expression",
+    expression: "burn the midnight oil",
+    usage: "Use this when you stay up late working or studying.",
+    example: "I have to burn the midnight oil to finish this report.",
+  },
+  {
+    id: "pv-log-in",
+    type: "Phrasal Verb",
+    expression: "log in",
+    usage: "Use this when you access a computer system or network.",
+    example: "Please log in to your account before starting the assignment.",
+  },
+  {
+    id: "pv-check-out",
+    type: "Phrasal Verb",
+    expression: "check out",
+    usage: "Use this when you examine something or leave a place.",
+    example: "Make sure to check out that new restaurant down the street.",
+  },
+  {
+    id: "ss-in-addition",
+    type: "Sentence Structure",
+    expression: "in addition to...",
+    usage: "Use this when you want to add more information.",
+    example: "In addition to her studies, she works part-time.",
+  },
+  {
+    id: "ex-keep-a-straight",
+    type: "Expression",
+    expression: "keep a straight face",
+    usage: "Use this when you try not to laugh or show emotion.",
+    example: "It was hard to keep a straight face during the funny presentation.",
+  },
+  {
+    id: "pv-wind-down",
+    type: "Phrasal Verb",
+    expression: "wind down",
+    usage: "Use this when you relax after a period of activity.",
+    example: "After a long day, I like to wind down with a book.",
+  },
+  {
+    id: "ss-regardless",
+    type: "Sentence Structure",
+    expression: "regardless of...",
+    usage: "Use this when you want to indicate that something does not depend on a condition.",
+    example: "Regardless of the weather, we will still have the picnic.",
+  },
+  {
+    id: "ex-pull-the-plug",
+    type: "Expression",
+    expression: "pull the plug",
+    usage: "Use this when you stop something or end a project.",
+    example: "The company decided to pull the plug on the failing product.",
+  },
 ];
 
 export const TYPE_COLORS = {
