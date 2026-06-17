@@ -1,0 +1,9 @@
+{
+  "id": "engexpr",
+  "name": "English Expressions",
+  "icon": "💬",
+  "description": "Random English expressions, phrasal verbs & sentence structures",
+  "version": "1.0.0",
+  "defaultSize": { "w": 480, "h": 560 },
+  "minSize": { "w": 380, "h": 300 }
+}
