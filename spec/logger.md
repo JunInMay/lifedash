@@ -27,13 +27,15 @@ log.error("msg", data?);         // 에러
 
 ### `logAction` — 사용자 액션 전용
 
+사용자가 앱에서 직접 클릭하거나 입력한 행동을 기록한다. API 호출, 내부 상태 변경, 버스 이벤트 같은 시스템 동작과 구분하기 위해 별도 함수로 분리했다.
+
 ```js
 import { logAction } from "@/core/logger";
 
 logAction("plugin:add", { pluginId, instanceId });
 ```
 
-파일에서 `[ACTION]` 접두어로 grep해 액션 로그만 추출할 수 있다.
+파일에 `[ACTION]` 접두어로 기록되므로, 시스템 로그와 섞인 파일에서 사용자 행동만 grep으로 추출할 수 있다.
 
 ## 로그 파일
 
