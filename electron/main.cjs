@@ -5,6 +5,14 @@ const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session
 const path = require("node:path");
 const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
+const log = require("electron-log/main");
+
+// 파일 로그 설정: %APPDATA%/lifedash-fable/logs/main.log (최대 5MB × 5개 로테이션)
+log.initialize();
+log.transports.file.maxSize = 5 * 1024 * 1024;
+log.transports.file.format = "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}";
+log.transports.console.level = false; // 메인 프로세스 콘솔은 electron-log가 중복 안 씀
+log.info("app start", { version: process.env.npm_package_version ?? "?" });
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const SMOKE = process.env.LIFEDASH_SMOKE === "1"; // CI/에이전트 검증용: 창 숨기고 자가진단 후 종료
@@ -98,6 +106,36 @@ ipcMain.handle("dialog:pickVideos", async (_e, extensions) => {
 });
 
 ipcMain.handle("fs:exists", (_e, p) => fs.existsSync(p));
+
+// 렌더러 → 파일 로그 (레벨별 라우팅)
+ipcMain.handle("log:write", (_e, entry) => {
+  const { level, message, data } = entry ?? {};
+  const fn = log[level] ?? log.info;
+  data ? fn(message, data) : fn(message);
+});
+
+// engexpr data.js에 AI 생성 표현 추가 (개발 단계 전용)
+ipcMain.handle("engexpr:append-data", (_e, newItems) => {
+  const dataPath = path.join(__dirname, "..", "src", "plugins", "engexpr", "data.js");
+  if (!fs.existsSync(dataPath)) throw new Error("data.js를 찾을 수 없습니다");
+  const src = fs.readFileSync(dataPath, "utf-8");
+  const insertPoint = src.lastIndexOf("];\n\nexport const TYPE_COLORS");
+  if (insertPoint === -1) throw new Error("data.js 삽입 위치를 찾을 수 없습니다");
+  const today = new Date().toISOString().slice(0, 10);
+  const block = newItems.map((item) => [
+    "  {",
+    `    id: "${item.id}",`,
+    `    type: "${item.type}",`,
+    `    expression: "${item.expression.replace(/"/g, '\\"')}",`,
+    `    usage: "${item.usage.replace(/"/g, '\\"')}",`,
+    `    example: "${item.example.replace(/"/g, '\\"')}",`,
+    "  },",
+  ].join("\n")).join("\n");
+  const header = `\n  // ── AI Generated (${today}) ────────────────────────────────────────\n`;
+  const updated = src.slice(0, insertPoint) + header + block + "\n" + src.slice(insertPoint);
+  fs.writeFileSync(dataPath, updated, "utf-8");
+  return newItems.length;
+});
 
 ipcMain.handle("window:toggleFullscreen", (e) => {
   const win = BrowserWindow.fromWebContents(e.sender);

@@ -12,4 +12,8 @@ contextBridge.exposeInMainWorld("lifedash", {
   toggleFullscreen: () => ipcRenderer.invoke("window:toggleFullscreen"),
   /** 로컬 동영상 파일 → <video src>용 URL */
   mediaSrc: (p) => `media://v/?p=${encodeURIComponent(p)}`,
+  /** 렌더러 로그 → 파일 (logger.js가 호출) */
+  logWrite: (entry) => ipcRenderer.invoke("log:write", entry),
+  /** engexpr: AI 생성 표현을 data.js에 직접 추가 (개발 단계) */
+  appendEngexprData: (items) => ipcRenderer.invoke("engexpr:append-data", items),
 });

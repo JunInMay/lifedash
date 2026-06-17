@@ -146,11 +146,22 @@ function Settings({ storage, bus, instanceId }) {
         { provider, apiKey: apiKey.trim(), model },
         existingIds
       );
-      const nextPool = [...extraPool, ...added];
-      sharedStorage.set("extraPool", nextPool);
-      setExtraPool(nextPool);
-      bus.emit("plugin:settings-changed", { instanceId });
-      setStatus({ ok: `Added ${added.length} new expressions. (${skipped} duplicates skipped)` });
+      if (added.length === 0) {
+        setStatus({ ok: `No new expressions. (${skipped} duplicates skipped)` });
+        return;
+      }
+      if (window.lifedash?.appendEngexprData) {
+        // Electron: data.js에 직접 추가 → Vite HMR이 자동으로 반영
+        await window.lifedash.appendEngexprData(added);
+        setStatus({ ok: `Added ${added.length} to data.js. (${skipped} duplicates skipped)` });
+      } else {
+        // 브라우저 dev: extraPool 임시 저장
+        const nextPool = [...extraPool, ...added];
+        sharedStorage.set("extraPool", nextPool);
+        setExtraPool(nextPool);
+        bus.emit("plugin:settings-changed", { instanceId });
+        setStatus({ ok: `Added ${added.length} expressions. (${skipped} duplicates skipped)` });
+      }
     } catch (e) {
       setStatus({ error: e.message });
     } finally {
