@@ -136,8 +136,8 @@ function Settings({ storage, bus, instanceId }) {
     storage.set("aiModel", val);
   };
 
-  const handleGenerate = async () => {
-    if (!apiKey.trim()) { setStatus({ error: "Enter an API key first." }); return; }
+  const fetchGenerated = async () => {
+    if (!apiKey.trim()) { setStatus({ error: "Enter an API key first." }); return null; }
     setBusy(true);
     setStatus(null);
     try {
@@ -148,25 +148,38 @@ function Settings({ storage, bus, instanceId }) {
       );
       if (added.length === 0) {
         setStatus({ ok: `No new expressions. (${skipped} duplicates skipped)` });
-        return;
+        return null;
       }
-      if (window.lifedash?.appendEngexprData) {
-        // Electron: data.js에 직접 추가 → Vite HMR이 자동으로 반영
-        await window.lifedash.appendEngexprData(added);
-        setStatus({ ok: `Added ${added.length} to data.js. (${skipped} duplicates skipped)` });
-      } else {
-        // 브라우저 dev: extraPool 임시 저장
-        const nextPool = [...extraPool, ...added];
-        sharedStorage.set("extraPool", nextPool);
-        setExtraPool(nextPool);
-        bus.emit("plugin:settings-changed", { instanceId });
-        setStatus({ ok: `Added ${added.length} expressions. (${skipped} duplicates skipped)` });
-      }
+      return { added, skipped };
     } catch (e) {
       setStatus({ error: e.message });
+      return null;
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleGenerateLocal = async () => {
+    const result = await fetchGenerated();
+    if (!result) return;
+    const { added, skipped } = result;
+    const nextPool = [...extraPool, ...added];
+    sharedStorage.set("extraPool", nextPool);
+    setExtraPool(nextPool);
+    bus.emit("plugin:settings-changed", { instanceId });
+    setStatus({ ok: `Saved ${added.length} to local pool. (${skipped} duplicates skipped)` });
+  };
+
+  const handleGenerateSource = async () => {
+    const result = await fetchGenerated();
+    if (!result) return;
+    const { added, skipped } = result;
+    if (!window.lifedash?.appendEngexprData) {
+      setStatus({ error: "Source write is only available in the desktop app." });
+      return;
+    }
+    await window.lifedash.appendEngexprData(added);
+    setStatus({ ok: `Added ${added.length} to data.js. (${skipped} duplicates skipped)` });
   };
 
   const handleClearPool = () => {
@@ -269,13 +282,24 @@ function Settings({ storage, bus, instanceId }) {
         />
       </div>
 
-      <button
-        className="engexpr-settings-generate"
-        onClick={handleGenerate}
-        disabled={busy}
-      >
-        {busy ? "Generating…" : "Generate 30 expressions"}
-      </button>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button
+          className="engexpr-settings-generate"
+          onClick={handleGenerateLocal}
+          disabled={busy}
+          title="Generate and save to local pool (this device only)"
+        >
+          {busy ? "Generating…" : "Generate → Local"}
+        </button>
+        <button
+          className="engexpr-settings-generate"
+          onClick={handleGenerateSource}
+          disabled={busy}
+          title="Generate and write directly to data.js (permanent, desktop only)"
+        >
+          {busy ? "Generating…" : "Generate → data.js"}
+        </button>
+      </div>
 
       {status && (
         <div className={`engexpr-settings-status ${status.error ? "error" : "ok"}`}>
