@@ -156,6 +156,7 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
 | `videoplayer` | 동영상 재생기 | 여러 경로의 로컬 동영상을 모아 재생, 우측 목록·호버 컨트롤·카드 내 최대화 | - (로컬 파일, 데스크탑 전용) |
 | `browser` | 웹뷰 | 사용자가 입력한 임의 URL을 `<webview>`로 카드 안에 표시, 주소창에서 변경 가능 | - (데스크탑 전용) |
 | `ricochetrobots` | 리코셰 로봇 | 1인 미니게임, 8~24 랜덤 보드(다크 테마, 대각선 벽 옵션), 로봇 슬라이드 애니메이션 이동으로 목표 도달 | - |
+| `engexpr` | English Expressions | 영어 표현 랜덤 추천 5개(구동사/문장구조/표현), Got it!/Bookmarks/Familiar, ⚙ 설정에서 AI로 extraPool 확장 | - (내장 57개 + AI extraPool) |
 
 ### 플러그인별 구현 메모
 
@@ -262,6 +263,13 @@ tasks/                  ← 작업/기획 문서 (MIGRATION.MD, TODO.md 등)
   - OS 메뉴바(File/Edit/...) 제거 — `Menu.setApplicationMenu(null)`. 추후 앱 내 설정 섹션으로 대체 예정. 부작용: Ctrl+R/F12 기본 단축키도 사라짐(dev는 detached devtools 자동 오픈으로 커버)
   - **Teams 클래식 퇴역 화면 문제**: Tauri의 WebView2(OS 최신 Edge 엔진, 현행 UA)와 달리 Electron 31은 Chromium 126(2년 전) + UA에 `Electron/31` 토큰 → Microsoft UA 스니핑이 퇴역한 클래식 Teams로 라우팅. **해결**: ① `app.userAgentFallback`에서 앱/Electron 토큰 제거(웹뷰 세션에도 적용), ② Electron 42로 업그레이드(Chromium 148 — UA를 속이는 게 아니라 실제 최신 엔진). 스모크에서 UA가 순수 `Chrome/148`로 나가는 것 확인
   - 교훈: **Electron은 엔진이 앱에 박제되므로 주기적 업그레이드 필요** (Tauri/WebView2는 OS가 갱신해줬음). 웹뷰 플러그인이 "구형 브라우저" 취급받기 시작하면 electron 버전부터 확인할 것
+
+### 2026-06-17
+- **engexpr 플러그인 추가**: 영어 표현 랜덤 추천 (구동사/문장구조/표현 57개 내장). 카드 5개 세로 목록, type badge, usage 설명(영어), 예문. ↻ 단일 새로고침 / ⟳ Shuffle All / ★ Familiar / 🔖 Bookmarks (각 팝업). Got it! 처리 시 familiar 이동 + 슬롯 자동 교체. 상세는 [spec/engexpr.md](spec/engexpr.md).
+- **engexpr ⚙ Settings**: AI provider(Claude/GPT) + API key + model 설정. "Generate 30 expressions" 버튼으로 AI 호출 → id 기반 중복 제거 → 신규만 extraPool(localStorage)에 추가. extraPool View(토글)/항목별 삭제/Clear all (각 confirm 포함).
+- **scripts/gen-expressions.js 추가**: AI로 표현 생성 후 data.js에 직접 하드코딩하는 개발용 스크립트. `node scripts/gen-expressions.js --key sk-ant-xxx [--provider openai] [--count 30]`. 기존 id 읽어 중복 제거 후 EXPRESSIONS 배열 끝에 삽입, git diff 검수 후 커밋하는 시드 데이터 확장 워크플로우.
+- **stocks 즐겨찾기 유지 버그 수정**: 카드 닫고 재추가 시 favorites가 초기화되는 문제. instanceStorage → `createSharedStorage("stocks")`로 전환.
+- **TODO.md 정리**: 항목 7(헤더 커스터마이즈) 완료 처리. 데이터 동기화 항목 추가.
 
 ### 2026-06-15
 - **ricochetrobots 플러그인 추가**: 1인용 Ricochet Robots 미니게임 (멀티플레이 없음, 사용자 명시). 12x12 랜덤 보드(랜덤 벽 22개·로봇 4색·랜덤 타겟), 클릭으로 로봇 선택 후 방향키로 슬라이드 이동, 이동 횟수 카운터, 클리어 시 자동 새 게임. 다크 테마(앱과 동일) + 컨테이너 쿼리 기반 정사각형 셀(원형 로봇/타겟 유지). 이후 ⚙ 설정(판 크기 8~24, 대각선 벽 디플렉터)과 로봇 이동 슬라이드 애니메이션 추가, 이동 횟수 +2 카운트 버그(StrictMode 이중 호출) 수정. 상세 변경 이력은 [spec/ricochetrobots.md](spec/ricochetrobots.md). 검증: `npm run build` ✅, 브라우저 프리뷰(1435)에서 다크 보드/원형 로봇·타겟/선택·이동/설정 변경(판 크기·대각선 벽)·디플렉터 경유 슬라이드 확인.
