@@ -663,6 +663,71 @@ export const EXPRESSIONS = [
     usage: "Use this when stating a negative condition that must be avoided.",
     example: "I won't go unless you come with me.",
   },
+
+  // ── AI Generated (2026-06-17) ────────────────────────────────────────
+  {
+    id: "pv-dress-up",
+    type: "Phrasal Verb",
+    expression: "dress up",
+    usage: "Use this when you want to put on formal or fancy clothes.",
+    example: "We need to dress up for the wedding ceremony.",
+  },
+  {
+    id: "pv-get-along-with",
+    type: "Phrasal Verb",
+    expression: "get along with",
+    usage: "Use this when you have a friendly relationship with someone.",
+    example: "I really get along with my new coworkers.",
+  },
+  {
+    id: "ss-wherever",
+    type: "Sentence Structure",
+    expression: "wherever you go",
+    usage: "When you want to express that something applies in all situations.",
+    example: "I'll support you wherever you go.",
+  },
+  {
+    id: "ss-regardless-of",
+    type: "Sentence Structure",
+    expression: "regardless of",
+    usage: "Use this when you want to indicate that something is true without consideration.",
+    example: "We will continue with the project regardless of the challenges.",
+  },
+  {
+    id: "ex-pull-someone's-leg",
+    type: "Expression",
+    expression: "pull someone's leg",
+    usage: "Use this when you are joking or teasing someone.",
+    example: "Are you serious, or are you just pulling my leg?",
+  },
+  {
+    id: "pv-come-across",
+    type: "Phrasal Verb",
+    expression: "come across",
+    usage: "Use this when you discover something by chance.",
+    example: "I came across an interesting article online.",
+  },
+  {
+    id: "ss-in-case-that",
+    type: "Sentence Structure",
+    expression: "in case that",
+    usage: "When you want to indicate a precautionary measure.",
+    example: "Take an umbrella in case that it rains later.",
+  },
+  {
+    id: "pv-fill-out",
+    type: "Phrasal Verb",
+    expression: "fill out",
+    usage: "When you complete a form by providing the necessary information.",
+    example: "Please fill out this application form before the interview.",
+  },
+  {
+    id: "pv-take-care-of",
+    type: "Phrasal Verb",
+    expression: "take care of",
+    usage: "Use this when you want to express handling or managing something.",
+    example: "Can you take care of the pets while I'm away?",
+  },
 ];
 
 export const TYPE_COLORS = {
