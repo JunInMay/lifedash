@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { EXPRESSIONS, TYPE_COLORS } from "./data";
 import { generateExpressions } from "./aiGen";
 import { createSharedStorage } from "../../core/storage";
+import { log, logAction } from "../../core/logger";
 import "./engexpr.css";
 
 const sharedStorage = createSharedStorage("engexpr");
@@ -142,16 +143,19 @@ function Settings({ storage, bus, instanceId }) {
     setStatus(null);
     try {
       const existingIds = totalPool.map((e) => e.id);
+      log.info("engexpr: AI 표현 생성 요청", { provider, model, existingCount: existingIds.length });
       const { added, skipped } = await generateExpressions(
         { provider, apiKey: apiKey.trim(), model },
         existingIds
       );
+      log.info("engexpr: AI 표현 생성 완료", { added: added.length, skipped });
       if (added.length === 0) {
         setStatus({ ok: `No new expressions. (${skipped} duplicates skipped)` });
         return null;
       }
       return { added, skipped };
     } catch (e) {
+      log.error("engexpr: AI 표현 생성 실패", { message: e.message });
       setStatus({ error: e.message });
       return null;
     } finally {
@@ -167,6 +171,7 @@ function Settings({ storage, bus, instanceId }) {
     sharedStorage.set("extraPool", nextPool);
     setExtraPool(nextPool);
     bus.emit("plugin:settings-changed", { instanceId });
+    logAction("engexpr:generate-local", { added: added.length, skipped });
     setStatus({ ok: `Saved ${added.length} to local pool. (${skipped} duplicates skipped)` });
   };
 
@@ -178,8 +183,14 @@ function Settings({ storage, bus, instanceId }) {
       setStatus({ error: "Source write is only available in the desktop app." });
       return;
     }
-    await window.lifedash.appendEngexprData(added);
-    setStatus({ ok: `Added ${added.length} to data.js. (${skipped} duplicates skipped)` });
+    try {
+      await window.lifedash.appendEngexprData(added);
+      logAction("engexpr:generate-source", { added: added.length, skipped });
+      setStatus({ ok: `Added ${added.length} to data.js. (${skipped} duplicates skipped)` });
+    } catch (e) {
+      log.error("engexpr: data.js 쓰기 실패", { message: e.message });
+      setStatus({ error: e.message });
+    }
   };
 
   const handleClearPool = () => {

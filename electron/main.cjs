@@ -118,6 +118,7 @@ ipcMain.handle("log:write", (_e, entry) => {
 // engexpr data.js에 AI 생성 표현 추가 (개발 단계 전용)
 ipcMain.handle("engexpr:append-data", (_e, newItems) => {
   const dataPath = path.join(__dirname, "..", "src", "plugins", "engexpr", "data.js");
+  log.info("[engexpr] append-data 시작", { count: newItems.length });
   if (!fs.existsSync(dataPath)) throw new Error("data.js를 찾을 수 없습니다");
   const src = fs.readFileSync(dataPath, "utf-8");
   const insertPoint = src.lastIndexOf("];\n\nexport const TYPE_COLORS");
@@ -135,11 +136,18 @@ ipcMain.handle("engexpr:append-data", (_e, newItems) => {
   const header = `\n  // ── AI Generated (${today}) ────────────────────────────────────────\n`;
   const updated = src.slice(0, insertPoint) + header + block + "\n" + src.slice(insertPoint);
   fs.writeFileSync(dataPath, updated, "utf-8");
+  log.info("[engexpr] data.js 파일 쓰기 완료");
 
   const projectRoot = path.join(__dirname, "..");
-  execSync(`git add "${dataPath}"`, { cwd: projectRoot });
-  execSync(`git commit -m "engexpr: AI 생성 표현 ${newItems.length}개 추가 (${today})"`, { cwd: projectRoot });
-  execSync("git push", { cwd: projectRoot });
+  try {
+    execSync(`git add "${dataPath}"`, { cwd: projectRoot });
+    execSync(`git commit -m "engexpr: AI 생성 표현 ${newItems.length}개 추가 (${today})"`, { cwd: projectRoot });
+    execSync("git push", { cwd: projectRoot });
+    log.info("[engexpr] git commit+push 완료", { count: newItems.length, date: today });
+  } catch (gitErr) {
+    log.error("[engexpr] git 오류", { message: gitErr.message });
+    throw new Error(`data.js 저장은 됐지만 git 오류: ${gitErr.message}`);
+  }
 
   return newItems.length;
 });
