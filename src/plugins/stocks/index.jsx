@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { searchSymbols, fetchQuote, fetchFundamentals, fmtBig, fmtRatio } from "./api";
 import { fmtPrice, fmtPct, trendColor, fmtMarketTime } from "../markets/api";
 import Chart from "../markets/Chart";
+import { createSharedStorage } from "../../core/storage";
 import "./stocks.css";
 
 const SEARCH_DEBOUNCE_MS = 400;
+const sharedStorage = createSharedStorage("stocks");
 
 function StocksPlugin({ storage }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [favorites, setFavorites] = useState(() => storage.get("favorites", []));
+  const [favorites, setFavorites] = useState(() => sharedStorage.get("favorites", []));
   const [symbol, setSymbol] = useState(() => storage.get("symbol", null));
   // 내장 테이블/검색 결과의 표시명 (Yahoo meta.shortName은 "SamsungElec"처럼 축약됨)
   const [symbolName, setSymbolName] = useState(() => storage.get("symbolName", null));
@@ -96,7 +98,7 @@ function StocksPlugin({ storage }) {
       ? favorites.filter((f) => f.symbol !== quote.symbol)
       : [...favorites, { symbol: quote.symbol, name: displayName ?? quote.symbol }];
     setFavorites(next);
-    storage.set("favorites", next);
+    sharedStorage.set("favorites", next);
   };
 
   const color = trendColor(quote?.changePct);
