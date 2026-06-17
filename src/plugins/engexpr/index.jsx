@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { EXPRESSIONS, TYPE_COLORS } from "./data";
 import { generateExpressions } from "./aiGen";
 import "./engexpr.css";
@@ -102,7 +102,7 @@ function Popup({ title, items, emptyMsg, removeTitle, onRemove, onClose }) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
-function Settings({ storage }) {
+function Settings({ storage, bus, instanceId }) {
   const [provider, setProvider] = useState(() => storage.get("aiProvider", "claude"));
   const [apiKey, setApiKey] = useState(() => storage.get("aiKey", ""));
   const [model, setModel] = useState(() => {
@@ -146,6 +146,7 @@ function Settings({ storage }) {
       const nextPool = [...extraPool, ...added];
       storage.set("extraPool", nextPool);
       setExtraPool(nextPool);
+      bus.emit("plugin:settings-changed", { instanceId });
       setStatus({ ok: `Added ${added.length} new expressions. (${skipped} duplicates skipped)` });
     } catch (e) {
       setStatus({ error: e.message });
@@ -158,6 +159,7 @@ function Settings({ storage }) {
     if (!window.confirm(`Clear all ${extraPool.length} AI-generated expressions? This cannot be undone.`)) return;
     storage.set("extraPool", []);
     setExtraPool([]);
+    bus.emit("plugin:settings-changed", { instanceId });
     setStatus({ ok: "Extra pool cleared." });
   };
 
@@ -167,6 +169,7 @@ function Settings({ storage }) {
     const next = extraPool.filter((e) => e.id !== id);
     storage.set("extraPool", next);
     setExtraPool(next);
+    bus.emit("plugin:settings-changed", { instanceId });
   };
 
   const prov = PROVIDERS.find((p) => p.id === provider);
@@ -271,7 +274,7 @@ function Settings({ storage }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-function EngExprPlugin({ storage }) {
+function EngExprPlugin({ instanceId, storage, bus }) {
   const [extraPool, setExtraPool] = useState(() => storage.get("extraPool", []));
   const [familiar, setFamiliar] = useState(() => storage.get("familiar", []));
   const [bookmarks, setBookmarks] = useState(() => storage.get("bookmarks", []));
@@ -283,11 +286,14 @@ function EngExprPlugin({ storage }) {
   );
   const [popup, setPopup] = useState(null);
 
-  // Settings 변경 후 extraPool 재동기화
-  const syncExtraPool = useCallback(() => {
-    const next = storage.get("extraPool", []);
-    setExtraPool(next);
-  }, [storage]);
+  // Settings에서 extraPool 변경 시 슬롯 갱신
+  useEffect(() => {
+    return bus.on("plugin:settings-changed", ({ instanceId: id }) => {
+      if (id !== instanceId) return;
+      const next = storage.get("extraPool", []);
+      setExtraPool(next);
+    });
+  }, [bus, instanceId, storage]);
 
   const saveFamiliar = (next) => { setFamiliar(next); storage.set("familiar", next); };
   const saveBookmarks = (next) => { setBookmarks(next); storage.set("bookmarks", next); };
