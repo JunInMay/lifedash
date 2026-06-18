@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import { ResizableBox } from "react-resizable";
 import { getPlugin } from "./PluginRegistry";
@@ -8,14 +8,28 @@ import "react-resizable/css/styles.css";
 
 function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) {
   const nodeRef = useRef(null);
-  const [pos, setPos] = useState({ x: instance.x, y: instance.y });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const resizeStart = useRef(null);
 
-  // 정렬 버튼 등 외부에서 좌표가 바뀌면 로컬 드래그 상태도 따라가게 동기화
-  useEffect(() => {
-    setPos({ x: instance.x, y: instance.y });
-  }, [instance.x, instance.y]);
+  // 드래그가 마지막으로 멈춘 위치. 외부(정렬/최대화)에서 좌표가 바뀌면
+  // syncKey를 올려 Draggable을 재초기화한다.
+  const lastDragPos = useRef({ x: instance.x, y: instance.y });
+  const [syncKey, setSyncKey] = useState(0);
+  const prevInstancePos = useRef({ x: instance.x, y: instance.y });
+
+  if (
+    prevInstancePos.current.x !== instance.x ||
+    prevInstancePos.current.y !== instance.y
+  ) {
+    prevInstancePos.current = { x: instance.x, y: instance.y };
+    if (
+      lastDragPos.current.x !== instance.x ||
+      lastDragPos.current.y !== instance.y
+    ) {
+      lastDragPos.current = { x: instance.x, y: instance.y };
+      setSyncKey((k) => k + 1);
+    }
+  }
 
   const Plugin = getPlugin(instance.pluginId);
   const storage = useMemo(
@@ -30,13 +44,13 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
 
   return (
     <Draggable
+      key={syncKey}
       nodeRef={nodeRef}
       handle=".plugin-handle"
-      position={pos}
+      defaultPosition={{ x: instance.x, y: instance.y }}
       bounds="parent"
-      onDrag={(_e, data) => setPos({ x: data.x, y: data.y })}
       onStop={(_e, data) => {
-        setPos({ x: data.x, y: data.y });
+        lastDragPos.current = { x: data.x, y: data.y };
         onMove(instance.instanceId, data.x, data.y);
       }}
     >
@@ -47,28 +61,34 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
           minConstraints={[minSize.w, minSize.h]}
           resizeHandles={["se", "sw", "ne", "nw"]}
           onResizeStart={(_e, { size, handle }) => {
-            resizeStart.current = { x: pos.x, y: pos.y, w: size.width, h: size.height, handle };
+            // 현재 드래그 위치는 nodeRef transform에서 직접 읽는다
+            const style = nodeRef.current?.style.transform ?? "";
+            const match = style.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+            const curX = match ? parseFloat(match[1]) : instance.x;
+            const curY = match ? parseFloat(match[2]) : instance.y;
+            resizeStart.current = { x: curX, y: curY, w: size.width, h: size.height, handle };
           }}
           onResize={(_e, { size, handle }) => {
             const start = resizeStart.current;
-            if (!start) return;
+            if (!start || !nodeRef.current) return;
             let x = start.x;
             let y = start.y;
             if (handle.includes("w")) x = start.x - (size.width - start.w);
             if (handle.includes("n")) y = start.y - (size.height - start.h);
-            setPos({ x, y });
+            nodeRef.current.style.transform = `translate(${x}px, ${y}px)`;
           }}
           onResizeStop={(_e, { size, handle }) => {
             const start = resizeStart.current;
-            let x = pos.x;
-            let y = pos.y;
-            if (start) {
-              x = start.x;
-              y = start.y;
-              if (handle.includes("w")) x = start.x - (size.width - start.w);
-              if (handle.includes("n")) y = start.y - (size.height - start.h);
-            }
             resizeStart.current = null;
+            if (!start) {
+              onResize(instance.instanceId, size.width, size.height);
+              return;
+            }
+            let x = start.x;
+            let y = start.y;
+            if (handle.includes("w")) x = start.x - (size.width - start.w);
+            if (handle.includes("n")) y = start.y - (size.height - start.h);
+            lastDragPos.current = { x, y };
             if (x !== instance.x || y !== instance.y) onMove(instance.instanceId, x, y);
             onResize(instance.instanceId, size.width, size.height);
           }}
@@ -135,4 +155,4 @@ function PluginCard({ instance, onMove, onResize, onRemove, onMaximizeToggle }) 
   );
 }
 
-export default PluginCard;
+export default memo(PluginCard);

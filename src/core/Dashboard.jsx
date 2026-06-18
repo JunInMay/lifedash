@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PluginCard from "./PluginCard";
 import PluginDrawer from "./PluginDrawer";
 import { getPlugin } from "./PluginRegistry";
@@ -38,13 +38,21 @@ function Dashboard() {
     saveLayout(next);
   };
 
-  const handleMove = (instanceId, x, y) => {
-    update(instances.map((it) => (it.instanceId === instanceId ? { ...it, x, y } : it)));
-  };
+  const handleMove = useCallback((instanceId, x, y) => {
+    setInstances((prev) => {
+      const next = prev.map((it) => (it.instanceId === instanceId ? { ...it, x, y } : it));
+      saveLayout(next);
+      return next;
+    });
+  }, []);
 
-  const handleResize = (instanceId, w, h) => {
-    update(instances.map((it) => (it.instanceId === instanceId ? { ...it, w, h } : it)));
-  };
+  const handleResize = useCallback((instanceId, w, h) => {
+    setInstances((prev) => {
+      const next = prev.map((it) => (it.instanceId === instanceId ? { ...it, w, h } : it));
+      saveLayout(next);
+      return next;
+    });
+  }, []);
 
   const handleAdd = (pluginId) => {
     const Plugin = getPlugin(pluginId);
@@ -67,67 +75,59 @@ function Dashboard() {
     ]);
   };
 
-  const handleRemove = (instanceId) => {
-    const target = instances.find((it) => it.instanceId === instanceId);
-    logAction("plugin:remove", { pluginId: target?.pluginId, instanceId });
-    clearPluginStorage(instanceId);
-    update(instances.filter((it) => it.instanceId !== instanceId));
-  };
+  const handleRemove = useCallback((instanceId) => {
+    setInstances((prev) => {
+      const target = prev.find((it) => it.instanceId === instanceId);
+      logAction("plugin:remove", { pluginId: target?.pluginId, instanceId });
+      clearPluginStorage(instanceId);
+      const next = prev.filter((it) => it.instanceId !== instanceId);
+      saveLayout(next);
+      return next;
+    });
+  }, []);
 
   // 헤더 더블클릭: 다른 카드를 침범하지 않는 선에서 상하좌우로 그리디 확장.
   // 이미 최대화된 상태(_prev 보유)면 원래 크기/위치로 복원(토글).
-  const handleMaximizeToggle = (instanceId) => {
-    const target = instances.find((it) => it.instanceId === instanceId);
-    if (!target) return;
-
-    if (target._prev) {
-      const { x, y, w, h } = target._prev;
-      update(
-        instances.map((it) =>
-          it.instanceId === instanceId ? { ...it, x, y, w, h, _prev: undefined } : it
-        )
-      );
-      return;
-    }
-
+  const handleMaximizeToggle = useCallback((instanceId) => {
     const GAP = 4;
     const boardW = boardRef.current?.clientWidth ?? window.innerWidth;
     const boardH = boardRef.current?.clientHeight ?? window.innerHeight;
-    const others = instances.filter((it) => it.instanceId !== instanceId);
 
-    let left = GAP;
-    let right = boardW - GAP;
-    let top = GAP;
-    let bottom = boardH - GAP;
+    setInstances((prev) => {
+      const target = prev.find((it) => it.instanceId === instanceId);
+      if (!target) return prev;
 
-    for (const o of others) {
-      const vOverlap = o.y < target.y + target.h && o.y + o.h > target.y;
-      if (vOverlap) {
-        if (o.x + o.w <= target.x) left = Math.max(left, o.x + o.w + GAP);
-        if (o.x >= target.x + target.w) right = Math.min(right, o.x - GAP);
+      let next;
+      if (target._prev) {
+        const { x, y, w, h } = target._prev;
+        next = prev.map((it) =>
+          it.instanceId === instanceId ? { ...it, x, y, w, h, _prev: undefined } : it
+        );
+      } else {
+        const others = prev.filter((it) => it.instanceId !== instanceId);
+        let left = GAP, right = boardW - GAP, top = GAP, bottom = boardH - GAP;
+        for (const o of others) {
+          const vOverlap = o.y < target.y + target.h && o.y + o.h > target.y;
+          if (vOverlap) {
+            if (o.x + o.w <= target.x) left = Math.max(left, o.x + o.w + GAP);
+            if (o.x >= target.x + target.w) right = Math.min(right, o.x - GAP);
+          }
+          const hOverlap = o.x < target.x + target.w && o.x + o.w > target.x;
+          if (hOverlap) {
+            if (o.y + o.h <= target.y) top = Math.max(top, o.y + o.h + GAP);
+            if (o.y >= target.y + target.h) bottom = Math.min(bottom, o.y - GAP);
+          }
+        }
+        next = prev.map((it) =>
+          it.instanceId === instanceId
+            ? { ...it, _prev: { x: it.x, y: it.y, w: it.w, h: it.h }, x: left, y: top, w: right - left, h: bottom - top }
+            : it
+        );
       }
-      const hOverlap = o.x < target.x + target.w && o.x + o.w > target.x;
-      if (hOverlap) {
-        if (o.y + o.h <= target.y) top = Math.max(top, o.y + o.h + GAP);
-        if (o.y >= target.y + target.h) bottom = Math.min(bottom, o.y - GAP);
-      }
-    }
-
-    update(
-      instances.map((it) =>
-        it.instanceId === instanceId
-          ? {
-              ...it,
-              _prev: { x: it.x, y: it.y, w: it.w, h: it.h },
-              x: left,
-              y: top,
-              w: right - left,
-              h: bottom - top,
-            }
-          : it
-      )
-    );
-  };
+      saveLayout(next);
+      return next;
+    });
+  }, [boardRef]);
 
   // 정렬: 현재 배치의 읽기 순서(위→아래, 왼→오른쪽)대로 크기를 유지한 채,
   // 각 카드를 "가장 위쪽, 그중 가장 왼쪽"의 들어갈 수 있는 빈자리에 채워 넣는다
