@@ -63,6 +63,14 @@ const curX = match ? parseFloat(match[1]) : instance.x;
 const curY = match ? parseFloat(match[2]) : instance.y;
 ```
 
+## 원인 3: GPU 레이어 미승격 (합성 병목)
+
+uncontrolled mode 전환 후에도 드래그 지연이 남아있던 원인.
+
+`.plugin-card-wrap`에 `will-change: transform`이 없으면 브라우저가 드래그 중 매 프레임마다 카드를 포함한 레이어를 CPU에서 다시 합성함. 저사양 PC에서 이 합성 비용이 병목이 됨.
+
+**수정**: `src/App.css`의 `.plugin-card-wrap`에 `will-change: transform` 추가. 브라우저가 해당 요소를 별도 GPU 컴포지터 레이어로 승격시켜, transform 변경이 GPU에서 직접 처리됨.
+
 ## 최종 변경 파일
 
 | 파일 | 변경 내용 |

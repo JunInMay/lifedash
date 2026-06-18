@@ -80,6 +80,7 @@ button {
 
 .plugin-card-wrap {
   position: absolute;
+  will-change: transform;
 }
 
 .plugin-card {
