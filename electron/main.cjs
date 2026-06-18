@@ -1,7 +1,7 @@
 // lifedash-fable Electron 메인 프로세스.
 // Tauri에서 마이그레이션 (tasks/MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
 // DOM에 합성되어 z-index/클리핑이 일반 카드처럼 동작한다는 것 (PoC 검증됨).
-const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session, screen } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { execSync } = require("node:child_process");
@@ -26,9 +26,22 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function createWindow() {
+  // 가장 낮은 주사율 모니터에서 열도록 시도 (테스트용: 60Hz 모니터 렌더 검증)
+  // 제거하려면 이 블록과 win 옵션의 x/y를 삭제하면 됨
+  const displays = screen.getAllDisplays();
+  const targetDisplay = displays.reduce((a, b) =>
+    (a.displayFrequency ?? 60) <= (b.displayFrequency ?? 60) ? a : b
+  );
+  const { x: dx, y: dy, width: dw, height: dh } = targetDisplay.bounds;
+  const winW = 1280, winH = 800;
+  const openX = dx + Math.round((dw - winW) / 2);
+  const openY = dy + Math.round((dh - winH) / 2);
+
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: winW,
+    height: winH,
+    x: openX,
+    y: openY,
     minWidth: 900,
     minHeight: 620,
     backgroundColor: "#15171c",

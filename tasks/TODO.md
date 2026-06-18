@@ -9,6 +9,7 @@
 ## 성능
 
 - [x] ~~**드래그 반응속도 저하 + 커서 디싱크**~~ — controlled mode → uncontrolled mode 전환, `React.memo` + `useCallback` 적용. 상세: [DRAG_PERF.md](DRAG_PERF.md) (2026-06-18).
+- [ ] **60Hz 모니터 전체화면(F11) 시 드래그 극단적 지연** — 144Hz+60Hz 듀얼 모니터 환경에서 60Hz 모니터로 창을 옮긴 뒤 F11 전체화면 진입 시에만 발생. 창 모드에서는 정상. Chromium이 전체화면 전환 시 vsync를 재설정하는 과정에서 문제가 생기는 것으로 추정. 검증 중: `electron/main.cjs`에 `screen.getAllDisplays()`로 낮은 주사율 모니터에서 강제 오픈하는 코드 임시 추가 (원인 확인 후 제거 또는 정식 처리).
 
 ## 카드 UI/UX
 
