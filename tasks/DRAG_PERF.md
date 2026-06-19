@@ -71,6 +71,16 @@ uncontrolled mode 전환 후에도 드래그 지연이 남아있던 원인.
 
 **수정**: `src/App.css`의 `.plugin-card-wrap`에 `will-change: transform` 추가. 브라우저가 해당 요소를 별도 GPU 컴포지터 레이어로 승격시켜, transform 변경이 GPU에서 직접 처리됨.
 
+## 원인 4: 60Hz 전체화면 진입 시 Chromium vsync 재초기화 버그
+
+듀얼 모니터(144Hz + 60Hz) 환경에서 `setFullScreen(true)` 호출 시 Chromium이 vsync를 재초기화하는 과정에 버그가 있어, 60Hz 모니터 전체화면에서 드래그가 극단적으로 느려짐. 창 모드에서는 정상.
+
+**수정**: `app.commandLine.appendSwitch("disable-gpu-vsync")`로 GPU vsync 타이밍 강제 해제. 화면 티어링이 생길 수 있으나 실사용에서 티어링 없이 드래그 반응성 정상 확인됨.
+
+**시도했다 실패한 방법**:
+- `enter-full-screen` 이벤트 후 `win.webContents.invalidate()` 강제 리페인트 → vsync 없는 상태에서 리페인트가 추가로 끼어들어 오히려 더 이상해짐. `disable-gpu-vsync` 단독이 더 나음.
+- borderless maximized (`win.maximize()`) → 드래그는 해결되나 독점 전체화면이 아니라 사용자 요구 미충족.
+
 ## 최종 변경 파일
 
 | 파일 | 변경 내용 |

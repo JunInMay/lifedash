@@ -1,7 +1,7 @@
 // lifedash-fable Electron 메인 프로세스.
 // Tauri에서 마이그레이션 (tasks/MIGRATION.MD 참조) — 핵심 동기는 <webview> 태그가
 // DOM에 합성되어 z-index/클리핑이 일반 카드처럼 동작한다는 것 (PoC 검증됨).
-const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net, protocol, Menu, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { execSync } = require("node:child_process");
@@ -15,6 +15,13 @@ log.transports.file.format = "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}";
 log.transports.console.level = false; // 메인 프로세스 콘솔은 electron-log가 중복 안 씀
 log.info("app start", { version: process.env.npm_package_version ?? "?" });
 
+
+// 듀얼 모니터(144Hz+60Hz) 환경에서 setFullScreen 진입 시 Chromium이 vsync를 재초기화하는
+// 과정에 버그가 있어 60Hz 모니터 전체화면에서 드래그가 극단적으로 느려짐.
+// disable-gpu-vsync로 vsync 타이밍 강제 해제해 우회. 화면 티어링이 생길 수 있으나
+// 대시보드 특성상 드래그 반응성이 더 중요함.
+app.commandLine.appendSwitch("disable-gpu-vsync");
+
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const SMOKE = process.env.LIFEDASH_SMOKE === "1"; // CI/에이전트 검증용: 창 숨기고 자가진단 후 종료
 const NOTIFICATIONS_ENABLED = false;
@@ -26,22 +33,9 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function createWindow() {
-  // 가장 낮은 주사율 모니터에서 열도록 시도 (테스트용: 60Hz 모니터 렌더 검증)
-  // 제거하려면 이 블록과 win 옵션의 x/y를 삭제하면 됨
-  const displays = screen.getAllDisplays();
-  const targetDisplay = displays.reduce((a, b) =>
-    (a.displayFrequency ?? 60) <= (b.displayFrequency ?? 60) ? a : b
-  );
-  const { x: dx, y: dy, width: dw, height: dh } = targetDisplay.bounds;
-  const winW = 1280, winH = 800;
-  const openX = dx + Math.round((dw - winW) / 2);
-  const openY = dy + Math.round((dh - winH) / 2);
-
   const win = new BrowserWindow({
-    width: winW,
-    height: winH,
-    x: openX,
-    y: openY,
+    width: 1280,
+    height: 800,
     minWidth: 900,
     minHeight: 620,
     backgroundColor: "#15171c",
