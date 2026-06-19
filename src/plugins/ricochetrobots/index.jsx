@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { generateBoard, moveRobot } from "./board";
 import "./style.css";
 
@@ -11,7 +11,7 @@ const DIFFICULTY_OPTIONS = [
   { id: "hard", label: "어려움" },
   { id: "veryHard", label: "매우 어려움" },
 ];
-const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false, difficulty: "normal" };
+const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false, difficulty: "normal", cutLimit: false };
 
 const readSettings = (storage) => ({ ...DEFAULT_SETTINGS, ...storage.get("settings", {}) });
 
@@ -32,7 +32,6 @@ const WALL_HEX = {
   yellow: "#f1c40f",
 };
 
-// "to top right"는 "\" 모양, "to bottom right"는 "/" 모양 줄무늬를 그린다 (perpendicular to 그라디언트 방향)
 const DIAGONAL_GRADIENT = {
   slash: (hex) =>
     `linear-gradient(to bottom right, transparent 46%, ${hex} 46%, ${hex} 54%, transparent 54%)`,
@@ -40,14 +39,46 @@ const DIAGONAL_GRADIENT = {
     `linear-gradient(to top right, transparent 46%, ${hex} 46%, ${hex} 54%, transparent 54%)`,
 };
 
+function useTimer(active) {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    if (startRef.current == null) startRef.current = performance.now() - elapsed * 1000;
+    const tick = () => {
+      setElapsed((performance.now() - startRef.current) / 1000);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active]);
+
+  const reset = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    startRef.current = null;
+    setElapsed(0);
+  }, []);
+
+  const fmt = `${Math.floor(elapsed / 60).toString().padStart(2, "0")}:${(elapsed % 60).toFixed(1).padStart(4, "0")}`;
+
+  return { elapsed, fmt, reset };
+}
+
 export default function RicochetRobots({ instanceId, storage, bus }) {
   const [settings, setSettings] = useState(() => readSettings(storage));
   const [board, setBoard] = useState(() => generateBoard(settings));
   const [initialRobots, setInitialRobots] = useState(() => board.robots.map((r) => ({ ...r })));
   const [selected, setSelected] = useState(null);
   const [moves, setMoves] = useState(0);
-  // null | "success" | "fail"
   const [result, setResult] = useState(null);
+  // 첫 이동 후부터 타이머 시작, 결과 나오면 멈춤
+  const [timerActive, setTimerActive] = useState(false);
+  const { fmt: timerFmt, reset: resetTimer } = useTimer(timerActive && !result);
 
   const newGame = useCallback((opts) => {
     const next = generateBoard(opts);
@@ -56,17 +87,19 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
     setSelected(null);
     setMoves(0);
     setResult(null);
-  }, []);
+    setTimerActive(false);
+    resetTimer();
+  }, [resetTimer]);
 
-  // 현재 보드(벽/목표/디플렉터)는 유지하고 로봇 위치만 초기 상태로 되돌림
   const refresh = useCallback(() => {
     setBoard((b) => ({ ...b, robots: initialRobots.map((r) => ({ ...r })) }));
     setSelected(null);
     setMoves(0);
     setResult(null);
-  }, [initialRobots]);
+    setTimerActive(false);
+    resetTimer();
+  }, [initialRobots, resetTimer]);
 
-  // 설정 팝업(공통 ⚙ 버튼)에서 변경한 설정을 반영
   useEffect(() => {
     return bus.on("plugin:settings-changed", (payload) => {
       if (payload?.instanceId !== instanceId) return;
@@ -85,10 +118,11 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
 
       const newMoves = moves + 1;
       const { optimalMoves } = board;
-      const cutMoves = optimalMoves != null ? optimalMoves + CUT_BUFFER : null;
-      setMoves(newMoves);
+      const cutMoves = settings.cutLimit && optimalMoves != null ? optimalMoves + CUT_BUFFER : null;
 
-      // 디플렉터로 꺾이는 지점마다 멈춰가며 애니메이션(rr-robot-wrap의 transition과 동일한 간격)
+      setMoves(newMoves);
+      setTimerActive(true);
+
       let i = 0;
       const advance = () => {
         const pos = path[i];
@@ -106,7 +140,6 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
           x === board.target.x &&
           y === board.target.y
         ) {
-          // 목표에 도달했어도 컷(최단+여유)을 넘겼으면 실패
           setResult(cutMoves != null && newMoves > cutMoves ? "fail" : "success");
         } else if (cutMoves != null && newMoves >= cutMoves) {
           setResult("fail");
@@ -114,7 +147,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
       };
       advance();
     },
-    [selected, result, board, moves]
+    [selected, result, board, moves, settings.cutLimit]
   );
 
   useEffect(() => {
@@ -132,7 +165,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
   };
 
   const { size, walls, blocked, diagonals, robots, target, optimalMoves } = board;
-  const cutMoves = optimalMoves != null ? optimalMoves + CUT_BUFFER : null;
+  const cutMoves = settings.cutLimit && optimalMoves != null ? optimalMoves + CUT_BUFFER : null;
   const wallColor = (on) => (on ? "#8ab4f8" : "#2b2f38");
   const wallWidth = (on) => (on ? 2 : 1);
   const cellPct = 100 / size;
@@ -144,6 +177,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
           이동: {moves}
           {cutMoves != null && ` / 컷 ${cutMoves} (최단 ${optimalMoves})`}
         </span>
+        <span className="rr-timer">{timerFmt}</span>
         <span className="rr-target">
           목표 <span className={`rr-dot rr-${target.color}`} />{" "}
           {COLOR_NAMES[target.color]}
@@ -236,7 +270,6 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
   );
 }
 
-// 카드 헤더의 공통 ⚙ 버튼으로 열리는 설정 팝업
 export function Settings({ instanceId, storage, bus }) {
   const [settings, setSettings] = useState(() => readSettings(storage));
 
@@ -281,6 +314,14 @@ export function Settings({ instanceId, storage, bus }) {
           type="checkbox"
           checked={settings.diagonalWalls}
           onChange={(e) => update({ diagonalWalls: e.target.checked })}
+        />
+      </label>
+      <label className="rr-checkbox">
+        컷 제한
+        <input
+          type="checkbox"
+          checked={settings.cutLimit}
+          onChange={(e) => update({ cutLimit: e.target.checked })}
         />
       </label>
     </div>

@@ -21,6 +21,12 @@
   font-weight: 600;
 }
 
+.rr-timer {
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  color: #8ab4f8;
+}
+
 .rr-target {
   display: flex;
   align-items: center;
