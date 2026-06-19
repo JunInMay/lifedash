@@ -11,7 +11,7 @@ const DIFFICULTY_OPTIONS = [
   { id: "hard", label: "어려움" },
   { id: "veryHard", label: "매우 어려움" },
 ];
-const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false, difficulty: "normal", cutLimit: false };
+const DEFAULT_SETTINGS = { size: 12, diagonalWalls: false, difficulty: "normal", cutLimit: false, showOptimal: true };
 
 const readSettings = (storage) => ({ ...DEFAULT_SETTINGS, ...storage.get("settings", {}) });
 
@@ -173,7 +173,8 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
       <div className="rr-header">
         <span className="rr-moves">
           이동: {moves}
-          {cutMoves != null && ` / 컷 ${cutMoves} (최단 ${optimalMoves})`}
+          {cutMoves != null && ` / 컷 ${cutMoves}`}
+          {settings.showOptimal && optimalMoves != null && ` (최단 ${optimalMoves})`}
         </span>
         <span className="rr-timer">{timerFmt}</span>
         <span className="rr-target">
@@ -270,13 +271,19 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
 
 export function Settings({ instanceId, storage, bus }) {
   const [settings, setSettings] = useState(() => readSettings(storage));
+  const settingsRef = useRef(settings);
 
   const update = (patch) => {
-    const next = { ...settings, ...patch };
+    const next = { ...settingsRef.current, ...patch };
+    settingsRef.current = next;
     setSettings(next);
     storage.set("settings", next);
-    bus.emit("plugin:settings-changed", { instanceId });
   };
+
+  // 설정창이 닫힐 때(언마운트) 한 번만 게임 초기화
+  useEffect(() => {
+    return () => bus.emit("plugin:settings-changed", { instanceId });
+  }, []);
 
   return (
     <div className="rr-settings-popup">
@@ -322,6 +329,15 @@ export function Settings({ instanceId, storage, bus }) {
           onChange={(e) => update({ cutLimit: e.target.checked })}
         />
       </label>
+      <label className="rr-checkbox">
+        최단 이동 수 표시
+        <input
+          type="checkbox"
+          checked={settings.showOptimal}
+          onChange={(e) => update({ showOptimal: e.target.checked })}
+        />
+      </label>
+      <p className="rr-settings-note">설정창을 닫으면 새 게임이 시작됩니다.</p>
     </div>
   );
 }

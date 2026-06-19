@@ -80,6 +80,13 @@
   cursor: pointer;
 }
 
+.rr-settings-note {
+  margin: 4px 0 0;
+  font-size: 0.8em;
+  color: #888;
+  text-align: center;
+}
+
 .rr-board-wrap {
   flex: 1;
   min-height: 0;
