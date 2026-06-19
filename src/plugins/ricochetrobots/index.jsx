@@ -270,7 +270,8 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
 }
 
 export function Settings({ instanceId, storage, bus }) {
-  const [settings, setSettings] = useState(() => readSettings(storage));
+  const initialSettings = useRef(readSettings(storage));
+  const [settings, setSettings] = useState(() => initialSettings.current);
   const settingsRef = useRef(settings);
 
   const update = (patch) => {
@@ -280,9 +281,14 @@ export function Settings({ instanceId, storage, bus }) {
     storage.set("settings", next);
   };
 
-  // 설정창이 닫힐 때(언마운트) 한 번만 게임 초기화
+  // 설정이 실제로 바뀐 경우에만 닫힐 때 게임 초기화
   useEffect(() => {
-    return () => bus.emit("plugin:settings-changed", { instanceId });
+    return () => {
+      const prev = initialSettings.current;
+      const curr = settingsRef.current;
+      const changed = Object.keys(curr).some((k) => curr[k] !== prev[k]);
+      if (changed) bus.emit("plugin:settings-changed", { instanceId });
+    };
   }, []);
 
   return (
