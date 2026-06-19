@@ -77,7 +77,7 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
   const [moves, setMoves] = useState(0);
   const [result, setResult] = useState(null);
   // 첫 이동 후부터 타이머 시작, 결과 나오면 멈춤
-  const [timerActive, setTimerActive] = useState(false);
+  const [timerActive, setTimerActive] = useState(true);
   const { fmt: timerFmt, reset: resetTimer } = useTimer(timerActive && !result);
 
   const newGame = useCallback((opts) => {
@@ -87,8 +87,8 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
     setSelected(null);
     setMoves(0);
     setResult(null);
-    setTimerActive(false);
     resetTimer();
+    setTimerActive(true);
   }, [resetTimer]);
 
   const refresh = useCallback(() => {
@@ -96,9 +96,8 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
     setSelected(null);
     setMoves(0);
     setResult(null);
-    setTimerActive(false);
-    resetTimer();
-  }, [initialRobots, resetTimer]);
+    // 타이머는 유지 — 같은 맵에서 재도전해도 시간은 계속 흐름
+  }, [initialRobots]);
 
   useEffect(() => {
     return bus.on("plugin:settings-changed", (payload) => {
@@ -121,7 +120,6 @@ export default function RicochetRobots({ instanceId, storage, bus }) {
       const cutMoves = settings.cutLimit && optimalMoves != null ? optimalMoves + CUT_BUFFER : null;
 
       setMoves(newMoves);
-      setTimerActive(true);
 
       let i = 0;
       const advance = () => {
